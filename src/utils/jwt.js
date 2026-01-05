@@ -3,7 +3,7 @@ import jwt from "jsonwebtoken";
 export const generateAccessToken = async (userId) => {
   try {
     return await jwt.sign({ userId: userId }, process.env.JWT_SECRET, {
-      algorithm: "HS256",
+      algorithm: "HS256", expiresIn : "15m"
     });
   } catch (error) {
     console.error("Error while generating access token :", error);
