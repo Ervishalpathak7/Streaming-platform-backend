@@ -1,5 +1,6 @@
 import { User } from "../models/user.js";
-import { hashPassword } from "../utils/bcrypt.js";
+import { comparePassword, hashPassword } from "../utils/bcrypt.js";
+import { generateAccessToken } from "../utils/jwt.js";
 
 export const register = async (req, res) => {
   try {
@@ -42,5 +43,45 @@ export const register = async (req, res) => {
     return;
   } catch (error) {
     console.error("Error in registration :", error);
+  }
+};
+
+export const loginController = async (req, res) => {
+  try {
+    const { email, password } = req.body || {};
+
+    if (!email || !password) {
+      res.status(400).json({
+        message: "Invalid data fields",
+      });
+      return;
+    }
+
+    const existingUserByEmail = await User.findOne({ email });
+    if (!existingUserByEmail) {
+      res.status(404).json({
+        message: "No user found by this email",
+      });
+      return;
+    }
+
+    if (!(await comparePassword(password, existingUserByEmail.password))) {
+      res.status(401).json({
+        message: "Invalid Credential",
+      });
+      return;
+    }
+
+    // access token
+    const accessToken = await generateAccessToken(existingUserByEmail._id);
+
+    res.status(200).json({
+      message: "User logged in succesfully",
+      accessToken,
+    });
+
+    return;
+  } catch (error) {
+    console.error("Error while logging in :", error);
   }
 };
