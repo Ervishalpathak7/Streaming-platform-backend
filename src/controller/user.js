@@ -74,10 +74,9 @@ export const loginController = async (req, res) => {
 
     // access token
     const accessToken = await generateAccessToken(existingUserByEmail._id);
-
-    res.status(200).json({
+    
+    res.set('Authorization' , accessToken).status(200).json({
       message: "User logged in succesfully",
-      accessToken,
     });
 
     return;
