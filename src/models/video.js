@@ -2,7 +2,7 @@ import mongoose, { Schema } from "mongoose";
 
 const VideoSchema = new Schema({
   owner: {
-    type: "ObjectId",
+    type: mongoose.Schema.Types.ObjectId,
     ref: "Users",
     require: true,
   },

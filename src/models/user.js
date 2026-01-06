@@ -14,6 +14,10 @@ const UserSchema = new Schema({
     type: String,
     require: true,
   },
+  files : {
+    type : mongoose.Schema.Types.ObjectId,
+    ref : "Videos"
+  }
 });
 
 export const User = mongoose.model("Users", UserSchema);
