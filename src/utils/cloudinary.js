@@ -1,15 +1,9 @@
 import { v2 } from "cloudinary";
-
-import path from "path";
-
 // Cloudinary config
-const filepate = path.join(process.cwd(), "src/public");
 
-export const uploadToCloudinary = async (imageName) => {
+export const uploadToCloudinary = async (filepath) => {
   try {
-    await v2.uploader.upload(`${filepate}/${imageName}`).then((result) => {
-      console.log("Upload Successfull :", result);
-    });
+    return await v2.uploader.upload(filepath);
   } catch (error) {
     console.error("Error while uploading to cloudinary :", error);
   }
