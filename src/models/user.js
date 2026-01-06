@@ -14,10 +14,10 @@ const UserSchema = new Schema({
     type: String,
     require: true,
   },
-  files : {
-    type : mongoose.Schema.Types.ObjectId,
-    ref : "Videos"
-  }
+  files: {
+    type: [mongoose.Schema.Types.ObjectId],
+    ref: "Videos",
+  },
 });
 
 export const User = mongoose.model("Users", UserSchema);
@@ -34,7 +34,7 @@ export const User = mongoose.model("Users", UserSchema);
 //       console.log("User created Successfully : ", user);
 //       await TestingVideoFunc(user , "video uri")
 //       return;
-//     } 
+//     }
 //     console.log("Error creating user");
 //   } catch (error) {
 //     throw error;
