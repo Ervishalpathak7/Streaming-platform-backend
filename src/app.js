@@ -1,6 +1,6 @@
 import express from "express"
 import { configDotenv } from "dotenv";
-import userRouter from "./routes/user.js";
+import userRouter from "./public/routes/user.js";
 import { authMiddleware } from "./middlewares/auth.js";
 
 
@@ -14,7 +14,7 @@ app.use(express.json({limit : "16kb"}));
 // routes
 app.use("/api" , userRouter)
 app.use(authMiddleware)
-app.use('/test' , (req , res) => {
+app.use('/test' , (_ , res) => {
     res.send("okkkk")
 })
 
