@@ -4,6 +4,7 @@ import { uploadVideoController } from "../controller/video.js";
 
 const fileRouter = Router();
 
-fileRouter.use("/upload", upload.single("photo"), uploadVideoController);
+
+fileRouter.use("/upload", upload.single("video"), uploadVideoController);
 
 export default fileRouter;
