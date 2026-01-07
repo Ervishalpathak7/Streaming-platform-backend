@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { logger } from "../utils/winston.js";
 
 export const connectDb = async (uri) => {
   try {
@@ -7,9 +8,13 @@ export const connectDb = async (uri) => {
       maxPoolSize: 10,
     });
     if (mongoose.connection.readyState == 1) {
-      console.log("Database connected successfully");
+      logger.info("Database connected successfully");
     }
   } catch (error) {
+    logger.error("Error while connecting database", {
+      message: err.message,
+      stack: err.stack,
+    });
     throw error;
   }
 };
@@ -17,9 +22,12 @@ export const connectDb = async (uri) => {
 export const disconnectDb = async () => {
   try {
     await mongoose.disconnect();
-    console.log("Database is disconnected successfully")
-    
+    logger.info("Database is disconnected successfully");
   } catch (error) {
-    throw error;
+    logger.error("Error while Disconnecting database", {
+      message: err.message,
+      stack: err.stack,
+    });
+    throw err;
   }
 };

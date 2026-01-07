@@ -25,7 +25,6 @@ export const verifyAccessToken = (token) => {
       // expected auth failure
       throw new AppError("Invalid or expired token", 401);
     }
-
     // truly unexpected
     throw new AppError("Token verification failed", 500, error);
   }

@@ -1,11 +1,12 @@
-import { AppError } from "../error/index.js";
+import {logger} from "../utils/winston.js"
 
 export const errorHandler = (err, req, res, next) => {
   res.status(err.statusCode || 500).json({
     success: false,
     message: err?.errorMessage || "Internal server error",
   });
-  if (err instanceof AppError) {
-    console.error(`Error : ${err.errorMessage}`);
-  } else console.error(`Error : ${err.errorMessage}`);
+  logger.error("User Error :", {
+    message: err?.errorMessage || err?.message || "Unexpected Error",
+    stack: err?.stack,
+  });
 };

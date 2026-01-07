@@ -2,6 +2,7 @@ import { Video } from "../models/video.js";
 import { v2 } from "cloudinary";
 import fs from "fs";
 import { handleBackgroundError } from "../error/backgroundErrorHandler.js";
+import { logger } from "./winston.js";
 
 export const uploadVideoToCloudinary = async (fileId, filepath) => {
   try {
@@ -25,22 +26,31 @@ export const uploadVideoToCloudinary = async (fileId, filepath) => {
       ],
     });
 
+    logger.info(`Video File processed successfully : ${fileId}`);
+
     await Video.findByIdAndUpdate(fileId, {
       status: "READY",
       url: result.eager?.[0]?.secure_url,
       thumbnail: result.eager?.[1]?.secure_url ?? null,
     });
+
+    logger.info(`Video File data updated : ${fileId}`);
+    
   } catch (error) {
     await Video.findByIdAndUpdate(fileId, {
       status: "FAILED",
       url: null,
       thumbnail: null,
     });
-    handleBackgroundError(error , { fileId } , "VIDEO PROCESSING")
+
+    handleBackgroundError(error, { fileId }, "VIDEO PROCESSING");
   } finally {
     if (filepath) {
       fs.unlink(filepath, (err) => {
-        if (err) console.error("Error deleting file : ", err);
+        if (err)
+          logger.error(`Error while deleting file : ${err?.message}`, {
+            stack: err?.stack,
+          });
       });
     }
   }

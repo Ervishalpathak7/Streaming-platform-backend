@@ -1,6 +1,7 @@
 import { AppError } from "../error/index.js";
 import { Video } from "../models/video.js";
 import { uploadVideoToCloudinary } from "../utils/cloudinary.js";
+import { logger } from "../utils/winston.js";
 
 export const uploadVideoController = async (req, res) => {
   const uploadedFile = req.file;
@@ -18,5 +19,6 @@ export const uploadVideoController = async (req, res) => {
     videoId: savedVideo._id,
   });
 
+  logger.info(`A New Video Recieved : ${savedVideo._id}`);
   uploadVideoToCloudinary(savedVideo._id, uploadedFile.path);
 };

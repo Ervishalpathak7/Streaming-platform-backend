@@ -1,14 +1,18 @@
+import mongoose from "mongoose";
 import { disconnectDb } from "../database/index.js";
 import { server } from "../index.js";
+import { logger } from "./winston.js";
 
 export const gracefullShutdown = async () => {
   try {
-    await disconnectDb();
+    if (mongoose.connection.readyState == 1) await disconnectDb();
   } catch (error) {
-    console.log("Error while closing server ", error);
+    logger.error(`Error while db closing : ${err?.message}`, {
+      stack: err?.stack,
+    });
   } finally {
     server.close(() => {
-      console.log("Server is Shutting down gracefully");
+      logger.info("Server is Shutting down gracefully");
       process.exit(1);
     });
   }

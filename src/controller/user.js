@@ -2,6 +2,7 @@ import { AppError } from "../error/index.js";
 import { User } from "../models/user.js";
 import { comparePassword, hashPassword } from "../utils/bcrypt.js";
 import { generateAccessToken } from "../utils/jwt.js";
+import { logger } from "../utils/winston.js";
 
 export const register = async (req, res) => {
   const { name, email, password } = req.body || {};
@@ -21,9 +22,11 @@ export const register = async (req, res) => {
     password: hashedPassword,
   });
 
+  logger.info(`New User Registered : ${createdUser._id}`);
+
   // send the response
   res.status(201).json({
-    message: "User created successfully",
+    message: "User Registered successfully",
   });
 };
 
@@ -40,6 +43,6 @@ export const loginController = async (req, res) => {
   // access token
   const accessToken = await generateAccessToken(existingUserByEmail._id);
   res.set("Authorization", accessToken).status(200).json({
-    message: "User logged in succesfully",
+    message: "User logged in Succesfully",
   });
 };
