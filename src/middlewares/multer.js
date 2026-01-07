@@ -1,5 +1,6 @@
 import multer from "multer";
 import path from "path";
+import { AppError } from "../error/index.js";
 
 const storagePath = path.join(process.cwd(), "src/public");
 const storage = multer.diskStorage({
@@ -23,13 +24,13 @@ const fileFilter = (req, file, cb) => {
     return cb(null, true);
   }
 
-  cb(new Error("Only video files are allowed"), false);
+  cb(new AppError("Only video files are allowed", 400), false);
 };
 
 export const upload = multer({
   storage,
   fileFilter,
   limits: {
-    fileSize: 1024 * 1024 * 1024, // 1GB
+    fileSize: 1024 * 1024 * 1024, 
   },
 });

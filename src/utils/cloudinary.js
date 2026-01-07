@@ -1,6 +1,7 @@
 import { Video } from "../models/video.js";
 import { v2 } from "cloudinary";
 import fs from "fs";
+import { handleBackgroundError } from "../error/backgroundErrorHandler.js";
 
 export const uploadVideoToCloudinary = async (fileId, filepath) => {
   try {
@@ -35,7 +36,7 @@ export const uploadVideoToCloudinary = async (fileId, filepath) => {
       url: null,
       thumbnail: null,
     });
-    console.error("Error in video processing :", error);
+    handleBackgroundError(error , { fileId } , "VIDEO PROCESSING")
   } finally {
     if (filepath) {
       fs.unlink(filepath, (err) => {
