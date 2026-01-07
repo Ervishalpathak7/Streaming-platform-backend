@@ -1,25 +1,23 @@
-import express from "express"
+import express from "express";
 import { configDotenv } from "dotenv";
 import { authMiddleware } from "./middlewares/auth.js";
 import fileRouter from "./routes/video.js";
 import userRouter from "./routes/user.js";
-
+import { errorHandler } from "./middlewares/errorHandeling.js";
+import { asyncHandler } from "./utils/asyncHandler.js";
 
 configDotenv();
 const app = express();
 
-
-app.use(express.urlencoded({extended : true , limit : "16kb"}));
-app.use(express.json({limit : "16kb"}));
+app.use(express.urlencoded({ extended: true, limit: "16kb" }));
+app.use(express.json({ limit: "16kb" }));
 
 // routes
-app.use("/api" , userRouter)
-app.use(authMiddleware)
-app.use("/" , fileRouter)
-app.use('/test' , (_ , res) => {
-    console.log(req.userId)
-    res.send("okkkk")
-})
+app.use("/api/auth", userRouter);
+app.use(asyncHandler(authMiddleware));
+app.use("/api/upload", fileRouter);
 
+// error handeling middleware
+app.use(errorHandler);
 
 export default app;
