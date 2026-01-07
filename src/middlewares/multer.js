@@ -1,15 +1,35 @@
 import multer from "multer";
 import path from "path";
-const storagePath = path.join(process.cwd(), "src/public");
 
+const storagePath = path.join(process.cwd(), "src/public");
 const storage = multer.diskStorage({
-  destination: function (_, _file, cb) {
-    cb(null, `${storagePath}/`);
+  destination: (req, file, cb) => {
+    cb(null, storagePath);
   },
-  filename: (_, file, cb) => {
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random());
-    cb(null, uniqueSuffix + file.originalname);
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    cb(null, uniqueSuffix + path.extname(file.originalname));
   },
 });
 
-export const upload = multer({ storage });
+const fileFilter = (req, file, cb) => {
+  const allowedMimeTypes = [
+    "video/mp4",
+    "video/quicktime", // .mov
+    "video/x-matroska", // .mkv
+  ];
+
+  if (allowedMimeTypes.includes(file.mimetype)) {
+    return cb(null, true);
+  }
+
+  cb(new Error("Only video files are allowed"), false);
+};
+
+export const upload = multer({
+  storage,
+  fileFilter,
+  limits: {
+    fileSize: 1024 * 1024 * 1024, // 1GB
+  },
+});
