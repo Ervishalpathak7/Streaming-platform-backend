@@ -4,15 +4,23 @@ const VideoSchema = new Schema({
   owner: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Users",
-    require: true,
+    required: true,
   },
   filename: {
     type: String,
-    require: true,
+    required: true,
   },
   url: {
     type: String,
-    require: true,
+  },
+  status: {
+    type: String,
+    enum: ["PROCESSING", "READY", "FAILED"],
+    default: "PROCESSING",
+    required: true,
+  },
+  thumbnail: {
+    type: String,
   },
 });
 
