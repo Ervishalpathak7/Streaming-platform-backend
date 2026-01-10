@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import { AppError } from "../error/index.js";
 import { Video } from "../models/video.js";
 import { uploadVideoToCloudinary } from "../utils/cloudinary.js";
@@ -34,6 +35,20 @@ export const uploadVideoController = async (req, res) => {
   uploadVideoToCloudinary(savedVideo._id, uploadedFile.path);
 };
 
-export const getVideoController = async (req , res) => {
+export const getVideoController = async (req, res) => {
+  logger.info("Get Hit");
+  const { id: videoId } = req.params;
+  if (!videoId) throw new AppError("Video id is required", 400);
 
+  if (!mongoose.isValidObjectId(videoId))
+    throw new AppError("Invalid video Id", 404);
+
+  const video = await Video.findById(videoId);
+  if (!video) throw new AppError("No video found", 404);
+  res.status(200).json({
+    videoId: video._id,
+    status: video.status,
+    streamUrl: video.status === "READY" ? video.url : null,
+    thumbnail: video.thumbnail ?? null,
+  });
 };
