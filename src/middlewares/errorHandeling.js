@@ -1,4 +1,4 @@
-import {logger} from "../utils/winston.js"
+import { logger } from "../utils/winston.js";
 
 export const errorHandler = (err, req, res, next) => {
   res.status(err.statusCode || 500).json({
@@ -7,6 +7,5 @@ export const errorHandler = (err, req, res, next) => {
   });
   logger.error("User Error :", {
     message: err?.errorMessage || err?.message || "Unexpected Error",
-    stack: err?.stack,
   });
 };

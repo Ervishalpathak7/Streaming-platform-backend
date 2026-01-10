@@ -5,7 +5,6 @@ import { logger } from "../utils/winston.js";
 
 export const uploadVideoController = async (req, res) => {
   const idempotencyKey = req?.headers?.idempotencykey;
-  console.log("Headers :"  , req.headers)
   if (!idempotencyKey) throw new AppError("No Idempotency Key", 400);
   const uploadedFile = req.file;
   if (!uploadedFile) throw new AppError("Invalid file", 400);
@@ -33,4 +32,8 @@ export const uploadVideoController = async (req, res) => {
   logger.info(`A New Video Recieved : ${savedVideo._id}`);
 
   uploadVideoToCloudinary(savedVideo._id, uploadedFile.path);
+};
+
+export const getVideoController = async (req , res) => {
+
 };
