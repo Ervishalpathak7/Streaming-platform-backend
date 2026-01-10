@@ -1,7 +1,6 @@
 import { Video } from "../models/video.js";
 import { v2 } from "cloudinary";
 import fs from "fs";
-import { handleBackgroundError } from "../error/backgroundErrorHandler.js";
 import { logger } from "./winston.js";
 
 export const uploadVideoToCloudinary = async (fileId, filepath) => {
@@ -27,7 +26,6 @@ export const uploadVideoToCloudinary = async (fileId, filepath) => {
     });
 
     logger.info(`Video File processed successfully : ${fileId}`);
-    console.log(result.eager[1].secure_url);
 
     await Video.findByIdAndUpdate(fileId, {
       status: "READY",
@@ -42,8 +40,9 @@ export const uploadVideoToCloudinary = async (fileId, filepath) => {
       url: null,
       thumbnail: null,
     });
-
-    handleBackgroundError(error, "VIDEO PROCESSING", { fileId });
+    logger.error(
+      `Error while video processing : ${fileId} : ${error?.message}`
+    );
   } finally {
     if (filepath) {
       fs.unlink(filepath, (err) => {

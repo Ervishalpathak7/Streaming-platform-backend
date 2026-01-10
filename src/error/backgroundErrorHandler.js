@@ -2,10 +2,11 @@ import { logger } from "../utils/winston.js";
 
 export const handleBackgroundError = (
   error,
-  context = {},
-  type = "UNEXPECTED"
+  type = "UNEXPECTED",
+  context = "No Context Set"
 ) => {
-  logger.error(`Error while ${type} : ${error?.message}`, {
+  console.log(error);
+  logger.error(`Error while ${type} : ${error?.message} : ${context}`, {
     stack: error?.stack,
   });
 };
