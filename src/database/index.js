@@ -10,12 +10,12 @@ export const connectDb = async (uri) => {
     if (mongoose.connection.readyState == 1) {
       logger.info("Database connected successfully");
     }
-  } catch (error) {
+  } catch (err) {
     logger.error("Error while connecting database", {
       message: err.message,
       stack: err.stack,
     });
-    throw error;
+    throw err;
   }
 };
 
@@ -23,7 +23,7 @@ export const disconnectDb = async () => {
   try {
     await mongoose.disconnect();
     logger.info("Database is disconnected successfully");
-  } catch (error) {
+  } catch (err) {
     logger.error("Error while Disconnecting database", {
       message: err.message,
       stack: err.stack,
