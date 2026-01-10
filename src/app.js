@@ -14,8 +14,7 @@ app.use(express.json({ limit: "16kb" }));
 
 // routes
 app.use("/api/auth", userRouter);
-app.use(asyncHandler(authMiddleware));
-app.use("/api/upload", fileRouter);
+app.use("/api/video", fileRouter);
 
 // error handeling middleware
 app.use(errorHandler);

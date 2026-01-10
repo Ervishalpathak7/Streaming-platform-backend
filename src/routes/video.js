@@ -1,12 +1,20 @@
 import { Router } from "express";
 import { upload } from "../middlewares/multer.js";
-import { getVideoController, uploadVideoController } from "../controller/video.js";
+import {
+  getVideoController,
+  uploadVideoController,
+} from "../controller/video.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
+import { authMiddleware } from "../middlewares/auth.js";
 
 const fileRouter = Router();
 
-fileRouter.use("/", upload.single("video"), asyncHandler(uploadVideoController));
-fileRouter.use("/:id", asyncHandler(getVideoController));
-
+fileRouter.use("/:id", authMiddleware, asyncHandler(getVideoController));
+fileRouter.use(
+  "/",
+  authMiddleware,
+  upload.single("video"),
+  asyncHandler(uploadVideoController)
+);
 
 export default fileRouter;
