@@ -6,6 +6,14 @@ const VideoSchema = new Schema({
     ref: "Users",
     required: true,
   },
+  title: {
+    type: String,
+    required: true,
+  },
+  des: {
+    type: String,
+    default: null,
+  },
   filename: {
     type: String,
     required: true,
