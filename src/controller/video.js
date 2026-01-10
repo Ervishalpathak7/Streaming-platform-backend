@@ -30,13 +30,13 @@ export const uploadVideoController = async (req, res) => {
     message: "Video processing",
     videoId: savedVideo._id,
   });
+
   logger.info(`A New Video Recieved : ${savedVideo._id}`);
 
   uploadVideoToCloudinary(savedVideo._id, uploadedFile.path);
 };
 
 export const getVideoController = async (req, res) => {
-  logger.info("Get Hit");
   const { id: videoId } = req.params;
   if (!videoId) throw new AppError("Video id is required", 400);
 
