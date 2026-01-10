@@ -1,7 +1,8 @@
 import { verifyAccessToken } from "../utils/jwt.js";
 import { AppError } from "../error/index.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
 
-export const authMiddleware = (req, res, next) => {
+export const authMiddleware = asyncHandler((req, res, next) => {
   const authHeader = req?.headers?.authorization || null;
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     throw new AppError("No access token", 401);
@@ -10,4 +11,4 @@ export const authMiddleware = (req, res, next) => {
   const payload = verifyAccessToken(token);
   req.userId = payload.userId;
   next();
-};
+});
