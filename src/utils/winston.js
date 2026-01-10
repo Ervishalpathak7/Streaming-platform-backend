@@ -13,10 +13,10 @@ const istTimestamp = () =>
     hour12: false,
   }).format(new Date());
 
-const devFormat = printf(({ level, message, timestamp, stack }) => {
+const devFormat = printf(({ level, message, stack }) => {
   return stack
-    ? `${timestamp} ${level}: ${message}\n${stack}`
-    : `${timestamp} ${level}: ${message}`;
+    ? `${istTimestamp()} ${level}: ${message}\n${stack}`
+    : `${istTimestamp()} ${level}: ${message}`;
 });
 
 export const logger = createLogger({

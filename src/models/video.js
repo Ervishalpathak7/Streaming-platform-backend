@@ -22,6 +22,10 @@ const VideoSchema = new Schema({
   thumbnail: {
     type: String,
   },
+  idempotencyKey: {
+    type: String,
+    required: true,
+  },
 });
 
 export const Video = new mongoose.model("Videos", VideoSchema);
