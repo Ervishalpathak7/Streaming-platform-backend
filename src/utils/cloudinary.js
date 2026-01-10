@@ -27,15 +27,15 @@ export const uploadVideoToCloudinary = async (fileId, filepath) => {
     });
 
     logger.info(`Video File processed successfully : ${fileId}`);
+    console.log(result.eager[1].secure_url);
 
     await Video.findByIdAndUpdate(fileId, {
       status: "READY",
-      url: result.eager?.[0]?.secure_url,
-      thumbnail: result.eager?.[1]?.secure_url ?? null,
+      url: result?.eager[1]?.secure_url || null,
+      thumbnail: result.eager?.[1]?.secure_url || null,
     });
 
     logger.info(`Video File data updated : ${fileId}`);
-    
   } catch (error) {
     await Video.findByIdAndUpdate(fileId, {
       status: "FAILED",
@@ -43,7 +43,7 @@ export const uploadVideoToCloudinary = async (fileId, filepath) => {
       thumbnail: null,
     });
 
-    handleBackgroundError(error, { fileId }, "VIDEO PROCESSING");
+    handleBackgroundError(error, "VIDEO PROCESSING", { fileId });
   } finally {
     if (filepath) {
       fs.unlink(filepath, (err) => {
