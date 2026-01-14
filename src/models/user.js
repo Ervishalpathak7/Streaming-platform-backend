@@ -14,6 +14,11 @@ const UserSchema = new Schema({
     type: String,
     require: true,
   },
+  role: {
+    type: String,
+    enum: ["USER", "ADMIN"],
+    default: "USER",
+  },
   files: {
     type: [mongoose.Schema.Types.ObjectId],
     ref: "Videos",
