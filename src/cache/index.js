@@ -28,7 +28,6 @@ export const disconnectCache = async () => {
 };
 
 export const saveVideoData = async (
-  redisClient,
   videoId,
   status,
   title,
@@ -40,15 +39,19 @@ export const saveVideoData = async (
   if (status === "PROCESSING") {
     const payload = JSON.stringify({ status, title });
     await redisClient.set(key, payload, { EX: VIDEO_PROCESSING_TTL });
+    logger.info("Video Data Saved in Cache", videoId);
     return;
   }
 
   if (status === "READY") {
     const payload = JSON.stringify({ status, title, url, thumbnail });
     await redisClient.set(key, payload, { EX: VIDEO_READY_TTL });
+    logger.info("Video Data Updated in Cache", videoId);
     return;
   }
+
   await redisClient.del(key);
+  logger.error("Video Data Invalidate in cache", videoId);
 };
 
 export const getVideoData = async (videoId) => {
