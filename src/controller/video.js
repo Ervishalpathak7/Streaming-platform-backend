@@ -68,7 +68,6 @@ export const getVideoController = async (req, res) => {
     return;
   }
   logger.info("Cache Miss");
-
   const video = await Video.findById(videoId);
   if (!video) throw new AppError("No video found", 404);
   res.status(200).json({
@@ -76,7 +75,7 @@ export const getVideoController = async (req, res) => {
     title: video.title,
     status: video.status,
     streamUrl: video.status === "READY" ? video.url : null,
-    thumbnail: video.thumbnail ?? null,
+    thumbnail: video.thumbnail || null,
   });
   saveVideoData(videoId, video.status, video.title, video.url, video.thumbnail);
 };

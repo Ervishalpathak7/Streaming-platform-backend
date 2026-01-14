@@ -1,13 +1,13 @@
 import { Video } from "../models/video.js";
 import { v2 } from "cloudinary";
-import fs from "fs";
 import { logger } from "./winston.js";
 import { saveVideoData } from "../cache/index.js";
 import { fileClearing } from "./fileClearning.js";
 
 export const uploadVideoToCloudinary = async (videoId, filepath, title) => {
   let err = false;
-  let result;
+  let url;
+  let thumbnail;
   try {
     result = await v2.uploader.upload(filepath, {
       resource_type: "video",
@@ -30,21 +30,22 @@ export const uploadVideoToCloudinary = async (videoId, filepath, title) => {
     });
 
     logger.info(`Video File processed successfully : ${videoId}`);
+    url = result?.eager[1]?.secure_url;
+    thumbnail = result.eager?.[2]?.secure_url;
 
     await Video.findByIdAndUpdate(videoId, {
       status: "READY",
-      url: result?.eager[1]?.secure_url || null,
-      thumbnail: result.eager?.[2]?.secure_url || null,
+      url,
+      thumbnail,
     });
 
     logger.info(`Video File data updated : ${videoId}`);
-    console.log(result);
   } catch (error) {
     err = true;
     await Video.findByIdAndUpdate(fileId, {
       status: "FAILED",
-      url: null,
-      thumbnail: null,
+      url,
+      thumbnail,
     });
     logger.error(
       `Error while video processing : ${fileId} : ${error?.message}`
@@ -56,13 +57,7 @@ export const uploadVideoToCloudinary = async (videoId, filepath, title) => {
         await saveVideoData(videoId, "FAILED");
         return;
       }
-      await saveVideoData(
-        videoId,
-        "READY",
-        title,
-        result.eager[1].secure_url,
-        result.eager?.[2]?.secure_url
-      );
+      await saveVideoData(videoId, "READY", title, url, thumbnail);
     }
   }
 };
