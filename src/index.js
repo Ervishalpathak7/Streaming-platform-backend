@@ -3,9 +3,11 @@ import { connectDb } from "./database/index.js";
 import { gracefullShutdown } from "./utils/shutdown.js";
 const PORT = process.env.PORT || 4000;
 const MONGO_URI = process.env.MONGO_URI || "";
-export let server;
 import { v2 } from "cloudinary";
 import { logger } from "./utils/winston.js";
+import { connectCache } from "./cache/index.js";
+
+export let server;
 
 v2.config({
   secure: true,
@@ -15,7 +17,8 @@ v2.config({
 });
 
 connectDb(MONGO_URI)
-  .then(() => {
+  .then(async () => {
+    await connectCache();
     server = app.listen(PORT, () => {
       logger.info(`Server Started Running http://localhost:${PORT}/`);
     });
