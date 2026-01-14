@@ -2,10 +2,14 @@ import { Video } from "../models/video.js";
 import { v2 } from "cloudinary";
 import fs from "fs";
 import { logger } from "./winston.js";
+import { saveVideoData } from "../cache/index.js";
+import { fileClearing } from "./fileClearning.js";
 
-export const uploadVideoToCloudinary = async (fileId, filepath) => {
+export const uploadVideoToCloudinary = async (videoId, filepath, title) => {
+  let err = false;
+  let result;
   try {
-    const result = await v2.uploader.upload(filepath, {
+    result = await v2.uploader.upload(filepath, {
       resource_type: "video",
       eager: [
         {
@@ -25,16 +29,18 @@ export const uploadVideoToCloudinary = async (fileId, filepath) => {
       ],
     });
 
-    logger.info(`Video File processed successfully : ${fileId}`);
+    logger.info(`Video File processed successfully : ${videoId}`);
 
-    await Video.findByIdAndUpdate(fileId, {
+    await Video.findByIdAndUpdate(videoId, {
       status: "READY",
       url: result?.eager[1]?.secure_url || null,
-      thumbnail: result.eager?.[1]?.secure_url || null,
+      thumbnail: result.eager?.[2]?.secure_url || null,
     });
 
-    logger.info(`Video File data updated : ${fileId}`);
+    logger.info(`Video File data updated : ${videoId}`);
+    console.log(result);
   } catch (error) {
+    err = true;
     await Video.findByIdAndUpdate(fileId, {
       status: "FAILED",
       url: null,
@@ -45,12 +51,18 @@ export const uploadVideoToCloudinary = async (fileId, filepath) => {
     );
   } finally {
     if (filepath) {
-      fs.unlink(filepath, (err) => {
-        if (err)
-          logger.error(`Error while deleting file : ${err?.message}`, {
-            stack: err?.stack,
-          });
-      });
+      fileClearing(filepath);
+      if (err) {
+        await saveVideoData(videoId, "FAILED");
+        return;
+      }
+      await saveVideoData(
+        videoId,
+        "READY",
+        title,
+        result.eager[1].secure_url,
+        result.eager?.[2]?.secure_url
+      );
     }
   }
 };
