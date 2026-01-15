@@ -27,7 +27,6 @@ export const rateLimitMiddleware = (limiter, keyGenerator) => {
   return async (req, res, next) => {
     try {
       const key = keyGenerator(req);
-      console.log(key);
       await limiter.consume(key);
       next();
     } catch (err) {

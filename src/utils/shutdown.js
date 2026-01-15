@@ -14,7 +14,7 @@ export const gracefullShutdown = async () => {
     }
 
     await disconnectCache();
-    logger.info("Redis disconnected");
+    
   } catch (err) {
     logger.error("Error during graceful shutdown", {
       message: err.message,
