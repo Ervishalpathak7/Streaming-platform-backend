@@ -16,19 +16,39 @@ v2.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
 });
 
-connectDb(MONGO_URI)
-  .then(async () => {
+const startServer = async () => {
+  try {
+    await connectDb(MONGO_URI);
+    logger.info("MongoDB connected");
+
     await waitForRedis();
+    logger.info("Redis Connected");
+
     server = app.listen(PORT, () => {
-      logger.info(`Server Started Running http://localhost:${PORT}/`);
+      logger.info(`Server running at http://localhost:${PORT}`);
     });
-  })
-  .catch((err) => {
-    logger.error("Error while starting server", {
+  } catch (err) {
+    await gracefullShutdown();
+    logger.error("Failed to start server", {
       message: err.message,
       stack: err.stack,
     });
-    gracefullShutdown();
-  });
 
+    process.exit(1);
+  }
+};
+
+startServer();
+
+process.on("SIGTERM", gracefullShutdown);
 process.on("SIGINT", gracefullShutdown);
+
+process.on("uncaughtException", (err) => {
+  logger.error("Uncaught exception", err);
+  gracefullShutdown();
+});
+
+process.on("unhandledRejection", (err) => {
+  logger.error("Unhandled rejection", err);
+  gracefullShutdown();
+});
