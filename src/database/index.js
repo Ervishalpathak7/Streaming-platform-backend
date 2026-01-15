@@ -7,9 +7,6 @@ export const connectDb = async (uri) => {
       dbName: "streaming-platform",
       maxPoolSize: 10,
     });
-    if (mongoose.connection.readyState == 1) {
-      logger.info("Database connected successfully");
-    }
   } catch (err) {
     logger.error("Error while connecting database", {
       message: err.message,
