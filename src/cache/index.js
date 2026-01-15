@@ -35,9 +35,13 @@ redisClient.on("reconnecting", () => {
 
 export const waitForRedis = () =>
   new Promise((resolve, reject) => {
+    if (redisClient.status === "ready") {
+      return resolve();
+    }
     redisClient.once("ready", resolve);
     redisClient.once("error", reject);
-});
+  });
+
 
 export const disconnectCache = async () => {
   if (redisClient) {
