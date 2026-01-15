@@ -1,39 +1,45 @@
-import mongoose, { Schema } from "mongoose";
+import { Schema, model } from "mongoose";
 
-const VideoSchema = new Schema({
-  owner: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Users",
-    required: true,
+const VideoSchema = new Schema(
+  {
+    owner: {
+      type: Schema.Types.ObjectId,
+      ref: "Users",
+      required: true,
+    },
+    title: {
+      type: String,
+      required: true,
+    },
+    des: {
+      type: String,
+      default: null,
+    },
+    filename: {
+      type: String,
+      required: true,
+    },
+    url: String,
+    status: {
+      type: String,
+      enum: ["PROCESSING", "READY", "FAILED"],
+      default: "PROCESSING",
+      required: true,
+    },
+    thumbnail: String,
+    idempotencyKey: {
+      type: String,
+      required: true,
+    },
   },
-  title: {
-    type: String,
-    required: true,
-  },
-  des: {
-    type: String,
-    default: null,
-  },
-  filename: {
-    type: String,
-    required: true,
-  },
-  url: {
-    type: String,
-  },
-  status: {
-    type: String,
-    enum: ["PROCESSING", "READY", "FAILED"],
-    default: "PROCESSING",
-    required: true,
-  },
-  thumbnail: {
-    type: String,
-  },
-  idempotencyKey: {
-    type: String,
-    required: true,
-  },
-});
+  { timestamps: true }
+);
 
-export const Video = new mongoose.model("Videos", VideoSchema);
+VideoSchema.index({ idempotencyKey: 1 }, { unique: true });
+VideoSchema.index(
+  { owner: 1, createdAt: -1 },
+  { partialFilterExpression: { status: "READY" } }
+);
+
+
+export const Video = new model("Videos", VideoSchema);
