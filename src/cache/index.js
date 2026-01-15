@@ -1,28 +1,47 @@
-import { createClient } from "redis";
 import { logger } from "../utils/winston.js";
+import Redis from "ioredis";
 
 const VIDEO_CACHE_PREFIX = "video";
 const VIDEO_PROCESSING_TTL = 30; // 30 seconds
 const VIDEO_READY_TTL = 60 * 60 * 6; // 6 hour
-let redisClient;
 
-export const connectCache = async () => {
-  redisClient = createClient({ url: process.env.REDIS_URL });
+const redisClient = new Redis({
+  host: process.env.REDIS_HOST || "127.0.0.1",
+  port: process.env.REDIS_PORT || 6379,
+});
 
-  redisClient.on("error", (err) => {
-    logger.error("Redis Client Error", {
-      message: err.message,
-      stack: err.stack,
-    });
+redisClient.on("connect", () => {
+  logger.info("Redis connecting...");
+});
+
+redisClient.on("ready", () => {
+  logger.info("Redis ready");
+});
+
+redisClient.on("error", (err) => {
+  logger.error("Redis error", {
+    message: err.message,
+    stack: err.stack,
   });
+});
 
-  await redisClient.connect();
-  logger.info("Redis connected");
-};
+redisClient.on("close", () => {
+  logger.warn("Redis connection closed");
+});
+
+redisClient.on("reconnecting", () => {
+  logger.warn("Redis reconnecting");
+});
+
+export const waitForRedis = () =>
+  new Promise((resolve, reject) => {
+    redisClient.once("ready", resolve);
+    redisClient.once("error", reject);
+});
 
 export const disconnectCache = async () => {
   if (redisClient) {
-    await redisClient.close();
+    await redisClient.quit();
     logger.info("Redis disconnected");
   }
 };
@@ -38,20 +57,39 @@ export const saveVideoData = async (
 
   if (status === "PROCESSING") {
     const payload = JSON.stringify({ status, title });
-    await redisClient.set(key, payload, { EX: VIDEO_PROCESSING_TTL });
-    logger.info("Video Data Saved in Cache", videoId);
+
+    await redisClient.set(
+      key,
+      payload,
+      "EX",
+      VIDEO_PROCESSING_TTL
+    );
+
+    logger.info("Video data cached (PROCESSING)", { videoId });
     return;
   }
 
   if (status === "READY") {
-    const payload = JSON.stringify({ status, title, url, thumbnail });
-    await redisClient.set(key, payload, { EX: VIDEO_READY_TTL });
-    logger.info("Video Data Updated in Cache", videoId);
+    const payload = JSON.stringify({
+      status,
+      title,
+      url,
+      thumbnail,
+    });
+
+    await redisClient.set(
+      key,
+      payload,
+      "EX",
+      VIDEO_READY_TTL
+    );
+
+    logger.info("Video data cached (READY)", { videoId });
     return;
   }
 
   await redisClient.del(key);
-  logger.error("Video Data Invalidate in cache", videoId);
+  logger.warn("Video cache invalidated", { videoId, status });
 };
 
 export const getVideoData = async (videoId) => {
@@ -59,3 +97,5 @@ export const getVideoData = async (videoId) => {
   const cached = await redisClient.get(key);
   return cached ? JSON.parse(cached) : null;
 };
+
+export default redisClient;

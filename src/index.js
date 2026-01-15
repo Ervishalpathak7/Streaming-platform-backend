@@ -5,7 +5,7 @@ const PORT = process.env.PORT || 4000;
 const MONGO_URI = process.env.MONGO_URI || "";
 import { v2 } from "cloudinary";
 import { logger } from "./utils/winston.js";
-import { connectCache } from "./cache/index.js";
+import { waitForRedis } from "./cache/index.js";
 
 export let server;
 
@@ -18,7 +18,7 @@ v2.config({
 
 connectDb(MONGO_URI)
   .then(async () => {
-    await connectCache();
+    await waitForRedis();
     server = app.listen(PORT, () => {
       logger.info(`Server Started Running http://localhost:${PORT}/`);
     });
