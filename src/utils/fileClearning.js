@@ -1,6 +1,5 @@
 import fs from "fs";
 import { logger } from "./winston.js";
-import fs from "fs/promises";
 
 export const fileClearing = async (filepath) => {
   if (!filepath) return;
