@@ -8,6 +8,7 @@ const UserSchema = new Schema({
   email: {
     type: String,
     require: true,
+    unique : true,
     lowercase: true,
   },
   password: {
@@ -24,5 +25,7 @@ const UserSchema = new Schema({
     ref: "Videos",
   },
 });
+
+UserSchema.index({ email: 1 }, { unique: true });
 
 export const User = mongoose.model("Users", UserSchema);
