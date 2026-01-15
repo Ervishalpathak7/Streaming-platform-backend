@@ -9,20 +9,24 @@ export const register = async (req, res) => {
   if (!name || !email || !password)
     throw new AppError("Invalid data fields", 400);
 
-  const existingUserByEmail = await User.findOne({ email });
-  if (existingUserByEmail) throw new AppError("Email already registered", 409);
-
   // hash password
   const hashedPassword = await hashPassword(password);
 
   // create user in db
-  const createdUser = await User.create({
-    name,
-    email,
-    password: hashedPassword,
-  });
-
-  logger.info(`New User Registered : ${createdUser._id}`);
+  try {
+    const createdUser = await User.create({
+      name,
+      email,
+      password: hashedPassword,
+    });
+    logger.info(`New User Registered : ${createdUser._id}`);
+  } catch (err) {
+    if (err.code === 11000) throw new AppError("Email already registered", 409);
+    logger.error("Error in User Saving", {
+      message: err.message,
+      stack: err.stack,
+    });
+  }
 
   // send the response
   res.status(201).json({
