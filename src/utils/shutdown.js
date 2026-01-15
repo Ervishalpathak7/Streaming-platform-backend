@@ -6,17 +6,28 @@ import { disconnectCache } from "../cache/index.js";
 
 export const gracefullShutdown = async () => {
   try {
-    if (mongoose.connection.readyState == 1) await disconnectDb();
+    logger.info("Graceful shutdown initiated");
+
+    if (mongoose.connection.readyState === 1) {
+      await disconnectDb();
+      logger.info("MongoDB disconnected");
+    }
+
     await disconnectCache();
+    logger.info("Redis disconnected");
   } catch (err) {
-    logger.error(`Error in Gracefull Shutdown : ${err?.message}`, {
-      stack: err?.stack,
+    logger.error("Error during graceful shutdown", {
+      message: err.message,
+      stack: err.stack,
     });
   } finally {
-    if (server)
+    if (server) {
       server.close(() => {
-        logger.info("Server is Shutting down gracefully");
+        logger.info("Server shut down gracefully");
+        process.exit(0); 
       });
-    process.exit(1);
+    } else {
+      process.exit(0);
+    }
   }
 };
