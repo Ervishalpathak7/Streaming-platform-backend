@@ -1,13 +1,23 @@
 import { Router } from "express";
 import { loginController, register } from "../controller/user.js";
-import {asyncHandler} from "../utils/asyncHandler.js"
+import { asyncHandler } from "../utils/asyncHandler.js";
+import {
+  authRouteLimiter,
+  rateLimitMiddleware,
+} from "../middlewares/rateLimiting.js";
 
+const authRouter = Router();
 
-const userRouter = Router();
+authRouter.post(
+  "/register",
+  rateLimitMiddleware(authRouteLimiter, (req) => req.ip),
+  asyncHandler(register)
+);
 
+authRouter.post(
+  "/login",
+  rateLimitMiddleware(authRouteLimiter, (req) => req.ip),
+  asyncHandler(loginController)
+);
 
-userRouter.post('/register' , asyncHandler(register));
-userRouter.post('/login' , asyncHandler(loginController))
-
-
-export default userRouter
+export default authRouter;

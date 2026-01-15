@@ -6,15 +6,27 @@ import {
 } from "../controller/video.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { authMiddleware } from "../middlewares/auth.js";
+import {
+  getRouteLimiter,
+  rateLimitMiddleware,
+  uploadRouteLimiter,
+} from "../middlewares/rateLimiting.js";
 
-const fileRouter = Router();
+const videoRouter = Router();
 
-fileRouter.use("/:id", authMiddleware, asyncHandler(getVideoController));
-fileRouter.use(
+videoRouter.get(
+  "/:id",
+  authMiddleware,
+  rateLimitMiddleware(getRouteLimiter, (req) => req.ip),
+  asyncHandler(getVideoController)
+);
+
+videoRouter.post(
   "/",
   authMiddleware,
+  rateLimitMiddleware(uploadRouteLimiter, (req) => req.userId || req.ip),
   upload.single("video"),
   asyncHandler(createVideoController)
 );
 
-export default fileRouter;
+export default videoRouter;
