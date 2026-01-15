@@ -7,7 +7,6 @@ export const getRouteLimiter = new RateLimiterRedis({
   keyPrefix: "rl:get",
   points: 100, // 100 requests
   duration: 60, // per minute
-  useRedisPackage: true,
 });
 
 export const uploadRouteLimiter = new RateLimiterRedis({
@@ -20,14 +19,13 @@ export const uploadRouteLimiter = new RateLimiterRedis({
 export const authRouteLimiter = new RateLimiterRedis({
   storeClient: redisClient,
   keyPrefix: "rl:auth",
-  points: 1, // 5 attempts
+  points: 10, // 5 attempts
   duration: 15 * 60, // per 15 minutes
 });
 
 export const rateLimitMiddleware = (limiter, keyGenerator) => {
   return async (req, res, next) => {
     try {
-      logger.info("Limitter hit");
       const key = keyGenerator(req);
       console.log(key);
       await limiter.consume(key);
@@ -39,8 +37,6 @@ export const rateLimitMiddleware = (limiter, keyGenerator) => {
           retryAfter: Math.ceil(err.msBeforeNext / 1000),
         });
       }
-
-      // ⚠️ Redis or internal error → fail open
       logger.error("Rate limiter internal error", err);
       return next();
     }
