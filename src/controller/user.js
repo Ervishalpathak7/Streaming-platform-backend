@@ -3,11 +3,15 @@ import { User } from "../models/user.js";
 import { comparePassword, hashPassword } from "../utils/bcrypt.js";
 import { generateAccessToken } from "../utils/jwt.js";
 import { logger } from "../utils/winston.js";
+import { isValidEmail } from "../utils/emailCheck.js";
 
 export const register = async (req, res) => {
   const { name, email, password } = req.body || {};
   if (!name || !email || !password)
     throw new AppError("Invalid data fields", 400);
+
+  // email check
+  if (!isValidEmail(email)) throw new AppError("Invalid Email Format", 400);
 
   // hash password
   const hashedPassword = await hashPassword(password);
