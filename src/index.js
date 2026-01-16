@@ -2,12 +2,23 @@ import app from "./app.js";
 import { connectDb } from "./database/index.js";
 import { gracefullShutdown } from "./utils/shutdown.js";
 import { v2 } from "cloudinary";
-import { logger } from "./utils/winston.js";
+import { devFormat, logger } from "./utils/winston.js";
 import { waitForRedis } from "./cache/index.js";
+import { configDotenv } from "dotenv";
+import {transports , format} from "winston";
+const { combine ,colorize } = format;
+configDotenv();
 
 const PORT = process.env.PORT || 4000;
-const MONGO_URI = process.env.MONGO_URI || "";
+const MONGO_URI = process.env.MONGO_URI || null;
+const ENV = process.env.NODE_ENV || "DEV";
 export let server;
+
+if (ENV === "DEV") {
+  logger.add(
+    new transports.Console({ format: combine(colorize(), devFormat) })
+  );
+}
 
 v2.config({
   secure: true,

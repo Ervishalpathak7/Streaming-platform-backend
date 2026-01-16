@@ -1,10 +1,8 @@
 import express from "express";
-import { configDotenv } from "dotenv";
 import authRouter from "./routes/user.js";
 import { errorHandler } from "./middlewares/errorHandeling.js";
 import videoRouter from "./routes/video.js";
 
-configDotenv();
 const app = express();
 app.set("trust proxy", true);
 
