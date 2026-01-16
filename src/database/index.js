@@ -7,12 +7,16 @@ export const connectDb = async (uri) => {
       dbName: "streaming-platform",
       maxPoolSize: 10,
     });
-  } catch (err) {
-    logger.error("Error while connecting database", {
-      message: err.message,
-      stack: err.stack,
+  } catch (error) {
+    logger.error("Database connection failed", {
+      category: "server",
+      service: "db",
+      lifecycle: "process",
+      code: "DB_CONNECTION_FAILED",
+      error,
     });
-    throw err;
+
+    throw error;
   }
 };
 
@@ -20,11 +24,15 @@ export const disconnectDb = async () => {
   try {
     await mongoose.disconnect();
     logger.info("Database is disconnected successfully");
-  } catch (err) {
-    logger.error("Error while Disconnecting database", {
-      message: err.message,
-      stack: err.stack,
+  } catch (error) {
+    logger.error("Database disconnection failed", {
+      category: "server",
+      service: "db",
+      lifecycle: "process",
+      code: "DB_DISCONNECTION_FAILED",
+      error,
     });
-    throw err;
+
+    throw error;
   }
 };

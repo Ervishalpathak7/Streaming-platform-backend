@@ -29,14 +29,21 @@ export const rateLimitMiddleware = (limiter, keyGenerator) => {
       const key = keyGenerator(req);
       await limiter.consume(key);
       next();
-    } catch (err) {
-      if (err.remainingPoints !== undefined) {
+    } catch (error) {
+      if (error.remainingPoints !== undefined) {
         return res.status(429).json({
           message: "Too many requests. Please try again later.",
-          retryAfter: Math.ceil(err.msBeforeNext / 1000),
+          retryAfter: Math.ceil(error.msBeforeNext / 1000),
         });
       }
-      logger.error("Rate limiter internal error", err);
+      logger.error("Rate limiter internal failure", {
+        category: "server",
+        service: "rate-limiting",
+        lifecycle: "request",
+        code: "RATE_LIMITER_INTERNAL_ERROR",
+        error,
+      });
+
       return next();
     }
   };

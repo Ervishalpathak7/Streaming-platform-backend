@@ -29,16 +29,15 @@ export const uploadVideoToCloudinary = async (videoId, filepath, title) => {
       ],
     });
 
-    logger.info(`Video File processed successfully : ${videoId}`);
     url = result?.eager[1]?.secure_url;
     thumbnail = result.eager?.[2]?.secure_url;
+    logger.info(`Video File processed successfully : ${videoId}`);
 
     await Video.findByIdAndUpdate(videoId, {
       status: "READY",
       url,
       thumbnail,
     });
-
     logger.info(`Video File data updated : ${videoId}`);
   } catch (error) {
     err = true;
@@ -47,17 +46,23 @@ export const uploadVideoToCloudinary = async (videoId, filepath, title) => {
       url,
       thumbnail,
     });
-    logger.error(
-      `Error while video processing : ${fileId} : ${error?.message}`
-    );
+    logger.error("Video processing failed in Cloudinary", {
+      category: "external",
+      service: "cloudinary",
+      lifecycle: "process",
+      code: "VIDEO_PROCESSING_FAILED",
+      fileId,
+      filepath,
+      err,
+    });
   } finally {
     if (filepath) {
       fileClearing(filepath);
-      if (err) {
-        await saveVideoData(videoId, "FAILED");
+      if (!err) {
+        await saveVideoData(videoId, "READY", title, url, thumbnail);
         return;
       }
-      await saveVideoData(videoId, "READY", title, url, thumbnail);
+      await saveVideoData(videoId, "FAILED");
     }
   }
 };

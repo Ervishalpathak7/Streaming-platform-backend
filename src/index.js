@@ -1,12 +1,12 @@
 import app from "./app.js";
 import { connectDb } from "./database/index.js";
 import { gracefullShutdown } from "./utils/shutdown.js";
-const PORT = process.env.PORT || 4000;
-const MONGO_URI = process.env.MONGO_URI || "";
 import { v2 } from "cloudinary";
 import { logger } from "./utils/winston.js";
 import { waitForRedis } from "./cache/index.js";
 
+const PORT = process.env.PORT || 4000;
+const MONGO_URI = process.env.MONGO_URI || "";
 export let server;
 
 v2.config({
@@ -27,13 +27,15 @@ const startServer = async () => {
     server = app.listen(PORT, () => {
       logger.info(`Server running at http://localhost:${PORT}`);
     });
-  } catch (err) {
+  } catch (error) {
     await gracefullShutdown();
-    logger.error("Failed to start server", {
-      message: err.message,
-      stack: err.stack,
+    logger.error("Server failed to start — fatal startup error", {
+      category: "server",
+      service: "app",
+      code: "SERVER_STARTUP_FAILED",
+      lifecycle: "process",
+      error,
     });
-
     process.exit(1);
   }
 };
@@ -43,12 +45,24 @@ startServer();
 process.on("SIGTERM", gracefullShutdown);
 process.on("SIGINT", gracefullShutdown);
 
-process.on("uncaughtException", (err) => {
-  logger.error("Uncaught exception", err);
+process.on("uncaughtException", (error) => {
+  logger.error("Uncaught exception — process will exit", {
+    category: "server",
+    service: "app",
+    code: "UNCAUGHT_EXCEPTION",
+    lifecycle: "process",
+    error,
+  });
   gracefullShutdown();
 });
 
-process.on("unhandledRejection", (err) => {
-  logger.error("Unhandled rejection", err);
+process.on("unhandledRejection", (error) => {
+  logger.error("Unhandle Rejection — process will exit", {
+    category: "server",
+    service: "app",
+    code: "UNHANDLE_REJECTION",
+    lifecycle: "process",
+    error,
+  });
   gracefullShutdown();
 });

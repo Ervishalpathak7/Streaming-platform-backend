@@ -1,11 +1,11 @@
 import { logger } from "../utils/winston.js";
 
-export const errorHandler = (err, req, res, next) => {
-  res.status(err.statusCode || 500).json({
+export const errorHandler = (error, req, res, next) => {
+  res.status(error.statusCode || 500).json({
     success: false,
-    message: err?.errorMessage || "Internal server error",
+    message: error?.errorMessage || "Internal server error",
   });
   logger.error("User Error :", {
-    message: err?.errorMessage || err?.message || "Unexpected Error",
+    message: error?.errorMessage || error?.message,
   });
 };

@@ -42,12 +42,8 @@ export const waitForRedis = () =>
     redisClient.once("error", reject);
   });
 
-
 export const disconnectCache = async () => {
-  if (redisClient) {
-    await redisClient.quit();
-    logger.info("Redis disconnected");
-  }
+  if (redisClient) await redisClient.quit();
 };
 
 export const saveVideoData = async (
@@ -62,12 +58,7 @@ export const saveVideoData = async (
   if (status === "PROCESSING") {
     const payload = JSON.stringify({ status, title });
 
-    await redisClient.set(
-      key,
-      payload,
-      "EX",
-      VIDEO_PROCESSING_TTL
-    );
+    await redisClient.set(key, payload, "EX", VIDEO_PROCESSING_TTL);
 
     logger.info("Video data cached (PROCESSING)", { videoId });
     return;
@@ -81,12 +72,7 @@ export const saveVideoData = async (
       thumbnail,
     });
 
-    await redisClient.set(
-      key,
-      payload,
-      "EX",
-      VIDEO_READY_TTL
-    );
+    await redisClient.set(key, payload, "EX", VIDEO_READY_TTL);
 
     logger.info("Video data cached (READY)", { videoId });
     return;

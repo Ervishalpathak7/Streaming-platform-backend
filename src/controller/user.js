@@ -19,15 +19,19 @@ export const register = async (req, res) => {
       email,
       password: hashedPassword,
     });
+
     logger.info(`New User Registered : ${createdUser._id}`);
-  } catch (err) {
-    if (err.code === 11000) throw new AppError("Email already registered", 409);
-    logger.error("Error in User Saving", {
-      message: err.message,
-      stack: err.stack,
+  } catch (error) {
+    if (error.code === 11000)
+      throw new AppError("Email already registered", 409);
+    logger.error("User registration failed", {
+      category: "server",
+      service: "auth",
+      code: "AUTH_REGISTRATION_FAILED",
+      lifecycle: "request",
+      error,
     });
   }
-
   // send the response
   res.status(201).json({
     message: "User Registered successfully",

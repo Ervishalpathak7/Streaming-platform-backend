@@ -44,7 +44,14 @@ export const createVideoController = async (req, res) => {
     uploadVideoToCloudinary(savedVideo._id, uploadedFile.path, title);
   } catch (error) {
     fileClearing(uploadedFile.path);
-    throw error;
+    if (error instanceof AppError) throw error;
+    logger.error("Video upload failed", {
+      category: "server",
+      service: "video-upload",
+      lifecycle: "request",
+      code: "VIDEO_UPLOAD_FAILED",
+      error,
+    });
   }
 };
 

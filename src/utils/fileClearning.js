@@ -6,10 +6,13 @@ export const fileClearing = async (filepath) => {
   try {
     fs.unlink(filepath);
   } catch (err) {
-    logger.error("Temp file cleanup failed", {
+    logger.warn("File cleanup failed", {
+      category: "server",
+      service: "app",
+      lifecycle: "process",
+      code: "FILE_CLEANUP_FAILED",
       filepath,
-      message: err.message,
-      stack: err.stack,
+      err,
     });
   }
 };
