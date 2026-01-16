@@ -1,5 +1,5 @@
 import { createLogger, format, transports } from "winston";
-const { combine, errors, json, printf } = format;
+const { combine, colorize ,errors, json, printf } = format;
 
 const istTimestamp = () =>
   new Intl.DateTimeFormat("en-IN", {
@@ -23,6 +23,10 @@ export const logger = createLogger({
   level: "info",
   format: combine(errors({ stack: true }), json()),
   transports: [
+    new transports.Console({
+      format: combine(colorize(), devFormat)
+    }),
+
     new transports.File({
       level: "error",
       filename: "logs/error.log",

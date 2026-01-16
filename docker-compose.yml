@@ -1,0 +1,13 @@
+services:
+  api:
+    build: .
+    image: streaming-backend:latest
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:7-alpine
