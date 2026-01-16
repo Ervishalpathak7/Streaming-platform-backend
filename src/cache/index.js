@@ -5,10 +5,7 @@ const VIDEO_CACHE_PREFIX = "video";
 const VIDEO_PROCESSING_TTL = 30; // 30 seconds
 const VIDEO_READY_TTL = 60 * 60 * 6; // 6 hour
 
-const redisClient = new Redis({
-  host: process.env.REDIS_HOST,
-  port: process.env.REDIS_PORT,
-});
+const redisClient = new Redis(process.env.REDIS_URL);
 
 redisClient.on("connect", () => {
   logger.info("Redis connecting...");
