@@ -1,15 +1,16 @@
-import app from "./app.js";
-import { connectDb } from "./database/index.js";
-import { gracefullShutdown } from "./utils/shutdown.js";
-import { v2 } from "cloudinary";
-import { logger } from "./utils/winston.js";
-import { waitForRedis } from "./cache/index.js";
 import { configDotenv } from "dotenv";
 configDotenv();
+import { connectRedis, waitForRedis } from "./cache/index.js";
+import { connectDb } from "./database/index.js";
+import { gracefullShutdown } from "./utils/shutdown.js";
+import { logger } from "./utils/winston.js";
+import { v2 } from "cloudinary";
+import app from "./app.js";
 
 const PORT = process.env.PORT || 4000;
 const MONGO_URI = process.env.MONGO_URI || null;
 const ENV = process.env.NODE_ENV || "DEV";
+const REDIS_URL = process.env.REDIS_URL;
 export let server;
 
 v2.config({
@@ -21,6 +22,8 @@ v2.config({
 
 const startServer = async () => {
   try {
+
+    connectRedis(REDIS_URL);
     await connectDb(MONGO_URI);
     logger.info("MongoDB connected");
 
