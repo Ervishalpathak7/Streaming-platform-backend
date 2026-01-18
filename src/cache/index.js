@@ -31,9 +31,13 @@ export const connectRedis = (REDIS_URL) => {
   redisClient.on("reconnecting", () => {
     logger.warn("Redis reconnecting");
   });
+  return redisClient;
 };
 
-export const getRedis = () => redisClient;
+export const getRedis = () => {
+  if (!redisClient) connectRedis(process.eventNames.REDIS_URL);
+  return redisClient;
+};
 
 export const waitForRedis = () =>
   new Promise((resolve, reject) => {
@@ -43,11 +47,9 @@ export const waitForRedis = () =>
     redisClient.once("ready", resolve);
     redisClient.once("error", reject);
   });
-
 export const disconnectCache = async () => {
   if (redisClient) await redisClient.quit();
 };
-
 export const saveVideoData = async (
   videoId,
   status,
@@ -89,3 +91,5 @@ export const getVideoData = async (videoId) => {
   const cached = await redisClient.get(key);
   return cached ? JSON.parse(cached) : null;
 };
+
+export default redisClient;

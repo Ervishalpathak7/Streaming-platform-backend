@@ -1,37 +1,43 @@
 import { RateLimiterRedis } from "rate-limiter-flexible";
-import  { getRedis } from "../cache/index.js";
+import { connectRedis, getRedis } from "../cache/index.js";
 import { logger } from "../utils/winston.js";
 
 let getRouteLimiter;
 let authRouteLimiter;
 let uploadRouteLimiter;
 
+
 export const rateLimitstart = () => {
+  let redisClient = getRedis();
   getRouteLimiter = new RateLimiterRedis({
-    storeClient: getRedis(),
+    storeClient: redisClient,
     keyPrefix: "rl:get",
     points: 100, // 100 requests
     duration: 60, // per minute
   });
   uploadRouteLimiter = new RateLimiterRedis({
-    storeClient: getRedis(),
+    storeClient: redisClient,
     keyPrefix: "rl:upload",
     points: 5, // 5 uploads
     duration: 60 * 60, // per hour
   });
 
   authRouteLimiter = new RateLimiterRedis({
-    storeClient: getRedis(),
+    storeClient: redisClient,
     keyPrefix: "rl:auth",
     points: 10, // 5 attempts
     duration: 15 * 60, // per 15 minutes
   });
 };
 
-export const rateLimitMiddleware = (limiter, keyGenerator) => {
+export const rateLimitMiddleware = (limiterKey, keyGenerator) => {
   return async (req, res, next) => {
     try {
+      let limiter;
       const key = keyGenerator(req);
+      if (limiterKey === "AUTH") limiter = authRouteLimiter;
+      if (limiterKey === "UPLOAD") limiter = uploadRouteLimiter;
+      if (limiterKey === "GET") limiter = getRouteLimiter;
       await limiter.consume(key);
       next();
     } catch (error) {
@@ -49,9 +55,10 @@ export const rateLimitMiddleware = (limiter, keyGenerator) => {
         error,
       });
 
+      console.log(error);
+
       return next();
     }
   };
 };
 
-export { getRouteLimiter , authRouteLimiter , uploadRouteLimiter}

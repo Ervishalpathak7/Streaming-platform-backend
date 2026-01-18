@@ -6,6 +6,7 @@ import { gracefullShutdown } from "./utils/shutdown.js";
 import { logger } from "./utils/winston.js";
 import { v2 } from "cloudinary";
 import app from "./app.js";
+import { rateLimitstart } from "./middlewares/rateLimiting.js";
 
 const PORT = process.env.PORT || 4000;
 const MONGO_URI = process.env.MONGO_URI || null;
@@ -24,6 +25,8 @@ const startServer = async () => {
   try {
 
     connectRedis(REDIS_URL);
+    rateLimitstart();
+    
     await connectDb(MONGO_URI);
     logger.info("MongoDB connected");
 
