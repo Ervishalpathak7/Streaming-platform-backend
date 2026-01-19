@@ -20,13 +20,14 @@ export const createVideoController = async (req, res) => {
     });
 
     if (existingVideo) {
-      res.status(200).json({
+      res.status(201).json({
         videoId: existingVideo._id,
         title: existingVideo.title,
         status: existingVideo.status,
         streamUrl: existingVideo.url,
         thumbnail: existingVideo.thumbnail,
       });
+      fileClearing(uploadedFile.path);
       return;
     }
 

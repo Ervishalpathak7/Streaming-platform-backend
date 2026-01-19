@@ -1,10 +1,10 @@
-import fs from "fs";
 import { logger } from "./winston.js";
+import fs from "fs/promises";
 
 export const fileClearing = async (filepath) => {
   if (!filepath) return;
   try {
-    fs.unlink(filepath);
+    await fs.unlink(filepath);
   } catch (err) {
     logger.warn("File cleanup failed", {
       category: "server",
