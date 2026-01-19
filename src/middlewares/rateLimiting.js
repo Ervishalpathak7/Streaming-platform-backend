@@ -1,11 +1,10 @@
 import { RateLimiterRedis } from "rate-limiter-flexible";
-import { connectRedis, getRedis } from "../cache/index.js";
+import { getRedis } from "../cache/index.js";
 import { logger } from "../utils/winston.js";
 
 let getRouteLimiter;
 let authRouteLimiter;
 let uploadRouteLimiter;
-
 
 export const rateLimitstart = () => {
   let redisClient = getRedis();
@@ -54,9 +53,6 @@ export const rateLimitMiddleware = (limiterKey, keyGenerator) => {
         code: "RATE_LIMITER_INTERNAL_ERROR",
         error,
       });
-
-      console.log(error);
-
       return next();
     }
   };

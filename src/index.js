@@ -9,7 +9,7 @@ import app from "./app.js";
 import { rateLimitstart } from "./middlewares/rateLimiting.js";
 
 const PORT = process.env.PORT || 4000;
-const MONGO_URI = process.env.MONGO_URI || null;
+const MONGO_URI = process.env.MONGO_URI;
 const ENV = process.env.NODE_ENV || "DEV";
 const REDIS_URL = process.env.REDIS_URL;
 export let server;
@@ -23,10 +23,19 @@ v2.config({
 
 const startServer = async () => {
   try {
+    if (!PORT || !MONGO_URI || !ENV || !REDIS_URL) {
+      logger.error("NO ENV SET — fatal startup error", {
+        category: "server",
+        service: "app",
+        code: "SERVER_STARTUP_FAILED",
+        lifecycle: "process",
+      })
+      process.exit(1)
+    }
 
     connectRedis(REDIS_URL);
     rateLimitstart();
-    
+
     await connectDb(MONGO_URI);
     logger.info("MongoDB connected");
 

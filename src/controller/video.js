@@ -55,7 +55,7 @@ export const createVideoController = async (req, res) => {
   }
 };
 
-export const getVideoController = async (req, res) => {
+export const getVideoControllerbyId = async (req, res) => {
   const { id: videoId } = req.params;
   if (!videoId) throw new AppError("Video id is required", 400);
 

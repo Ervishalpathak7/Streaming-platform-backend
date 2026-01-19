@@ -1,8 +1,8 @@
 import { Router } from "express";
 import { upload } from "../middlewares/multer.js";
 import {
-  getVideoController,
   createVideoController,
+  getVideoControllerbyId,
 } from "../controller/video.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { authMiddleware } from "../middlewares/auth.js";
@@ -16,7 +16,7 @@ videoRouter.get(
   "/:id",
   authMiddleware,
   rateLimitMiddleware("GET", (req) => req.ip),
-  asyncHandler(getVideoController),
+  asyncHandler(getVideoControllerbyId),
 );
 
 videoRouter.post(
