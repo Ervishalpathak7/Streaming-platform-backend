@@ -17,7 +17,7 @@ export const rateLimitstart = () => {
   uploadRouteLimiter = new RateLimiterRedis({
     storeClient: redisClient,
     keyPrefix: "rl:upload",
-    points: 5, // 5 uploads
+    points: 50, // 5 uploads
     duration: 60 * 60, // per hour
   });
 
