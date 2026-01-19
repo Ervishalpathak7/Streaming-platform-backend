@@ -8,6 +8,7 @@ export const uploadVideoToCloudinary = async (videoId, videoPath, title) => {
   let err = false;
   let url;
   let thumbnail;
+  let duration;
   try {
     const result = await v2.uploader.upload(videoPath, {
       resource_type: "video",
@@ -29,12 +30,14 @@ export const uploadVideoToCloudinary = async (videoId, videoPath, title) => {
       ],
     });
 
-    url = result?.eager[1]?.secure_url;
-    thumbnail = result.eager?.[2]?.secure_url;
+    url = result?.eager[1].secure_url;
+    thumbnail = result.eager[2].secure_url;
+    duration = Number(result.duration.toFixed(1));
     logger.info(`Video File processed successfully : ${videoId}`);
     await Video.findByIdAndUpdate(videoId, {
       status: "READY",
       url,
+      duration,
       thumbnail,
     });
     logger.info(`Video File data updated : ${videoId}`);
@@ -59,10 +62,10 @@ export const uploadVideoToCloudinary = async (videoId, videoPath, title) => {
     if (videoPath) {
       fileClearing(videoPath);
       if (!err) {
-        await saveVideoData(videoId, "READY", title, url, thumbnail);
+        await saveVideoData(videoId, "READY", title, duration, url, thumbnail);
         return;
       }
-      await saveVideoData(videoId, "FAILED");
+      await saveVideoData(videoId, "FAILED", title);
     }
   }
 };

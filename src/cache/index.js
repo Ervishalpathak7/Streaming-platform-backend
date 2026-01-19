@@ -50,6 +50,7 @@ export const saveVideoData = async (
   videoId,
   status,
   title,
+  duration = null,
   url = null,
   thumbnail = null,
 ) => {
@@ -57,9 +58,7 @@ export const saveVideoData = async (
 
   if (status === "PROCESSING") {
     const payload = JSON.stringify({ status, title });
-
     await redisClient.set(key, payload, "EX", VIDEO_PROCESSING_TTL);
-
     logger.info("Video data cached (PROCESSING)", { videoId });
     return;
   }
@@ -68,12 +67,12 @@ export const saveVideoData = async (
     const payload = JSON.stringify({
       status,
       title,
+      duration,
       url,
       thumbnail,
     });
 
     await redisClient.set(key, payload, "EX", VIDEO_READY_TTL);
-
     logger.info("Video data cached (READY)", { videoId });
     return;
   }

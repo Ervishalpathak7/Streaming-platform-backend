@@ -20,6 +20,7 @@ const VideoSchema = new Schema(
       required: true,
     },
     url: String,
+    duration : Number,
     status: {
       type: String,
       enum: ["PROCESSING", "READY", "FAILED"],
