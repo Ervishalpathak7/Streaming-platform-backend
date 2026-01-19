@@ -86,3 +86,35 @@ export const getVideoControllerbyId = async (req, res) => {
   });
   saveVideoData(videoId, video.status, video.title, video.url, video.thumbnail);
 };
+
+export const getMyVideos = async (req, res) => {
+  const userId = req.userId;
+
+  const page = Math.max(parseInt(req.query.page) || 1, 1);
+  const limit = Math.min(parseInt(req.query.limit) || 10, 10);
+  const skip = (page - 1) * limit;
+  const filter = { owner: userId };
+  if (req.query.status) filter.status = req.query.status;
+
+  const [videos, total] = await Promise.all([
+    Video.find(filter)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .select(
+        "title status thumbnailUrl duration createdAt"
+      ),
+    Video.countDocuments(filter),
+  ]);
+
+  res.status(200).json({
+    success: true,
+    data: videos,
+    meta: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
+  });
+}
