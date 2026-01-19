@@ -15,13 +15,17 @@ export const createVideoController = async (req, res) => {
     const { title, description } = req.body;
     if (!title) throw new AppError("Title is required", 400);
 
-    const ExistingVideo = await Video.findOne({
+    const existingVideo = await Video.findOne({
       idempotencyKey: idempotencyKey,
     });
-    if (ExistingVideo) {
+
+    if (existingVideo) {
       res.status(200).json({
-        message: ExistingVideo.status,
-        videoId: ExistingVideo._id,
+        videoId: existingVideo._id,
+        title: existingVideo.title,
+        status: existingVideo.status,
+        streamUrl: existingVideo.url,
+        thumbnail: existingVideo.thumbnail,
       });
       return;
     }
@@ -36,12 +40,14 @@ export const createVideoController = async (req, res) => {
     });
 
     res.status(200).json({
-      message: "Video processing",
+      staus: "Processing",
       videoId: savedVideo._id,
     });
+
     saveVideoData(savedVideo._id, savedVideo.status, title);
     logger.info(`A New Video Recieved : ${savedVideo._id}`);
     uploadVideoToCloudinary(savedVideo._id, uploadedFile.path, title);
+
   } catch (error) {
     fileClearing(uploadedFile.path);
     if (error instanceof AppError) throw error;
