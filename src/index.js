@@ -8,7 +8,7 @@ import { v2 } from "cloudinary";
 import app from "./app.js";
 import { rateLimitstart } from "./middlewares/rateLimiting.js";
 
-const PORT = process.env.PORT || 4000;
+const PORT = process.env.PORT;
 const MONGO_URI = process.env.MONGO_URI;
 const ENV = process.env.NODE_ENV || "DEV";
 const REDIS_URL = process.env.REDIS_URL;
@@ -34,17 +34,17 @@ const startServer = async () => {
     }
 
     connectRedis(REDIS_URL);
+    await waitForRedis();
+
     rateLimitstart();
 
     await connectDb(MONGO_URI);
     logger.info("MongoDB connected");
 
-    await waitForRedis();
-    logger.info("Redis Connected");
-
     server = app.listen(PORT, () => {
       logger.info(`Server running at http://localhost:${PORT}`);
     });
+
   } catch (error) {
     await gracefullShutdown();
     logger.error("Server failed to start — fatal startup error", {

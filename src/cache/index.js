@@ -8,7 +8,6 @@ let redisClient;
 
 export const connectRedis = (REDIS_URL) => {
   redisClient = new Redis(REDIS_URL);
-
   redisClient.on("connect", () => {
     logger.info("Redis connecting...");
   });
@@ -34,10 +33,7 @@ export const connectRedis = (REDIS_URL) => {
   return redisClient;
 };
 
-export const getRedis = () => {
-  if (!redisClient) connectRedis(process.eventNames.REDIS_URL);
-  return redisClient;
-};
+export const getRedis = () => redisClient;
 
 export const waitForRedis = () =>
   new Promise((resolve, reject) => {

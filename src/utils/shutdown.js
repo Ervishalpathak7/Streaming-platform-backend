@@ -2,17 +2,20 @@ import mongoose from "mongoose";
 import { disconnectDb } from "../database/index.js";
 import { server } from "../index.js";
 import { logger } from "./winston.js";
-import { disconnectCache } from "../cache/index.js";
+import { disconnectCache, getRedis } from "../cache/index.js";
 
 export const gracefullShutdown = async () => {
   try {
     logger.info("Graceful shutdown initiated");
-    if (mongoose.connection.readyState === 1) {
-      await disconnectDb();
-      logger.info("MongoDB disconnected");
-    }
-    await disconnectCache();
+
+    // disconnectDb
+    if (mongoose.connection.readyState === 1) await disconnectDb();
+    logger.info("MongoDB disconnected");
+
+    // disconnectCache
+    if (getRedis()) await disconnectCache();
     logger.info("Redis disconnected");
+
   } catch (err) {
     logger.error("Graceful shutdown failed", {
       category: "server",
@@ -28,6 +31,7 @@ export const gracefullShutdown = async () => {
         process.exit(0);
       });
     } else {
+      logger.info("Server shut down gracefully");
       process.exit(0);
     }
   }

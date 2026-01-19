@@ -23,7 +23,6 @@ export const connectDb = async (uri) => {
 export const disconnectDb = async () => {
   try {
     await mongoose.disconnect();
-    logger.info("Database is disconnected successfully");
   } catch (error) {
     logger.error("Database disconnection failed", {
       category: "server",
@@ -32,7 +31,6 @@ export const disconnectDb = async () => {
       code: "DB_DISCONNECTION_FAILED",
       error,
     });
-
     throw error;
   }
 };
