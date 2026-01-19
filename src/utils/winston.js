@@ -1,5 +1,5 @@
 import { createLogger, format, transports } from "winston";
-const { combine, colorize ,errors, json, printf } = format;
+const { combine, colorize, errors, json, printf } = format;
 
 const istTimestamp = () =>
   new Intl.DateTimeFormat("en-IN", {
@@ -13,10 +13,8 @@ const istTimestamp = () =>
     hour12: false,
   }).format(new Date());
 
-export const devFormat = printf(({ level, message, stack }) => {
-  return stack
-    ? `${istTimestamp()} ${level}: ${message}\n${stack}`
-    : `${istTimestamp()} ${level}: ${message}`;
+export const devFormat = printf(({ level, message, ...meta }) => {
+  return `${istTimestamp()} ${level}: ${message} ${Object.keys(meta).length ? JSON.stringify(meta, null, 2) : ""}`
 });
 
 export const logger = createLogger({
