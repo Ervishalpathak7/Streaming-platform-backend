@@ -11,21 +11,16 @@ app.set("trust proxy", true);
 
 const allowedOrigins = ["http://localhost:5173", process.env.FRONTEND_URL];
 
-app.use(
-    cors({
-        origin: function (origin, callback) {
-            // allow non-browser requests (Postman, curl)
-            if (!origin) return callback(null, true);
-            if (allowedOrigins.includes(origin)) {
-                callback(null, true);
-            } else {
-                callback(new Error("Not allowed by CORS"));
-            }
-        },
-        credentials: true,
-        exposedHeaders: ["Authorization", "X-Request-Id"]
-    })
-);
+app.use(cors({
+    origin: function (origin, callback) {
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.includes(origin)) callback(null, true);
+        else callback(new Error("Not allowed by CORS"));
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+}));
 
 
 app.use(express.urlencoded({ extended: true, limit: "16kb" }));
