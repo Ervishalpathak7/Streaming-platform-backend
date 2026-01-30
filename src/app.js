@@ -9,8 +9,11 @@ import cors from "cors"
 const app = express();
 app.set("trust proxy", true);
 
-const allowedOrigins = ["http://localhost:5173", process.env.FRONTEND_URL];
-
+const allowedOrigins = [
+    "https://streamkaro.app",
+    "http://localhost:5173",
+    "https://www.streamkaro.app",
+];
 app.use(cors({
     origin: function (origin, callback) {
         if (!origin) return callback(null, true);
