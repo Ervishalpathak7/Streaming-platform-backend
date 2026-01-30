@@ -63,7 +63,6 @@ export const loginController = async (req, res) => {
   });
 };
 
-
 export const logoutController = async (req, res) => {
   const token = req.headers.authorization;
   const exp = req.exp;
@@ -71,7 +70,7 @@ export const logoutController = async (req, res) => {
   const ttl = exp - now;
   if (ttl > 1) {
     const redis = getRedis();
-    redis.set(`bl:${token}`, "1", "EX", ttl)
+    const res = await redis.set(`bl:${token}`, "1", "EX", ttl)
   }
   res.status(200).json({
     status: "success",
