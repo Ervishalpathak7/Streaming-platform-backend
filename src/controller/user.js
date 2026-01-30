@@ -24,7 +24,13 @@ export const register = async (req, res) => {
       password: hashedPassword,
     });
 
+    const accessToken = await generateAccessToken(createdUser._id);
+    res.set("Authorization", accessToken).status(201).json({
+      message: "User Registered Succesfully",
+    });
+
     logger.info(`New User Registered : ${createdUser._id}`);
+
   } catch (error) {
     if (error.code === 11000)
       throw new AppError("Email already registered", 409);
@@ -36,10 +42,6 @@ export const register = async (req, res) => {
       error,
     });
   }
-  const accessToken = await generateAccessToken(existingUserByEmail._id);
-  res.set("Authorization", accessToken).status(201).json({
-    message: "User Registered Succesfully",
-  });
 
 };
 
