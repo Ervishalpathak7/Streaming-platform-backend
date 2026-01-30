@@ -5,11 +5,14 @@ import videoRouter from "./routes/video.js";
 import { requestTimer } from "./utils/request-timer.js";
 import cors from "cors"
 
+
 const app = express();
 app.set("trust proxy", true);
 app.use(cors({
     origin: process.env.FRONTEND_URL,
-    credentials: true
+    credentials: true,
+    exposedHeaders: ["Authorization", "X-Request-Id"]
+
 }))
 
 app.use(express.urlencoded({ extended: true, limit: "16kb" }));
