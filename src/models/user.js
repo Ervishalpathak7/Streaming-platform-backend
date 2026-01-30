@@ -23,7 +23,9 @@ const UserSchema = new Schema({
     type: [mongoose.Schema.Types.ObjectId],
     ref: "Videos",
   },
-});
+},
+  { timestamps: true }
+);
 
 UserSchema.index({ email: 1 }, { unique: true });
 
