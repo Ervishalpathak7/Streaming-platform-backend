@@ -36,10 +36,11 @@ export const register = async (req, res) => {
       error,
     });
   }
-  // send the response
-  res.status(201).json({
-    message: "User Registered successfully",
+  const accessToken = await generateAccessToken(existingUserByEmail._id);
+  res.set("Authorization", accessToken).status(201).json({
+    message: "User Registered Succesfully",
   });
+
 };
 
 export const loginController = async (req, res) => {
