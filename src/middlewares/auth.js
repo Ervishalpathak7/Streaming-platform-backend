@@ -10,5 +10,6 @@ export const authMiddleware = asyncHandler((req, res, next) => {
   const token = authHeader.split(" ")[1];
   const payload = verifyAccessToken(token);
   req.userId = payload.userId;
+  req.exp = payload.exp;
   next();
 });

@@ -4,6 +4,7 @@ import { comparePassword, hashPassword } from "../utils/bcrypt.js";
 import { generateAccessToken } from "../utils/jwt.js";
 import { logger } from "../utils/winston.js";
 import { isValidEmail } from "../utils/emailCheck.js";
+import { getRedis } from "../cache/index.js";
 
 export const register = async (req, res) => {
   const { name, email, password } = req.body || {};
@@ -63,3 +64,17 @@ export const loginController = async (req, res) => {
 };
 
 
+export const logoutController = async (req, res) => {
+  const token = req.headers.authorization;
+  const exp = req.exp;
+  const now = Math.floor(Date.now() / 1000);
+  const ttl = exp - now;
+  if (ttl > 1) {
+    const redis = getRedis();
+    redis.set(`bl:${token}`, "1", "EX", ttl)
+  }
+  res.status(200).json({
+    status: "success",
+    message: "Logged out successfully",
+  });
+}
