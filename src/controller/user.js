@@ -77,3 +77,12 @@ export const logoutController = async (req, res) => {
     message: "Logged out successfully",
   });
 }
+
+export const getMe = async (req, res, next) => {
+  const user = await User.findById(req.userId).select("_id name email createdAt");
+  if (!user) return next(new AppError("User not found", 404));
+  res.status(200).json({
+    status: "success",
+    data: { user }
+  });
+};
