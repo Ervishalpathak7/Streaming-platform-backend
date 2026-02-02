@@ -109,10 +109,12 @@ export const getMyVideos = async (req, res) => {
       .skip(skip)
       .limit(limit)
       .select(
-        "_id status title thumbnail duration createdAt"
+        "_id description status title thumbnail duration createdAt"
       ),
     Video.countDocuments(filter),
   ]);
+
+  console.log(videos);
 
   res.status(200).json({
     success: true,

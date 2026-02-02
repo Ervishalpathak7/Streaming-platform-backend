@@ -37,7 +37,7 @@ app.use(requestTimer);
 // routes
 app.get("/health", (req, res) => { res.status(200).json({ status: "ok" }) });
 app.use("/api/auth", authRouter);
-app.use("/api/video", videoRouter);
+app.use("/api/videos", videoRouter);
 
 // error handeling middleware
 app.use(errorHandler);
