@@ -23,13 +23,22 @@ export const register = async (req, res) => {
       name,
       email,
       password: hashedPassword,
-    });
+    })
 
+    // generate access token
     const accessToken = await generateAccessToken(createdUser._id);
     res.set("Authorization", accessToken).status(201).json({
       message: "User Registered Succesfully",
+      data: {
+        user: {
+          _id: createdUser._id,
+          name: createdUser.name,
+          email: createdUser.email,
+          role: createdUser.role,
+          createdAt: createdUser.createdAt
+        }
+      },
     });
-
     logger.info(`New User Registered : ${createdUser._id}`);
 
   } catch (error) {
@@ -43,14 +52,13 @@ export const register = async (req, res) => {
       error,
     });
   }
-
 };
 
 export const loginController = async (req, res) => {
   const { email, password } = req.body || {};
   if (!email || !password) throw new AppError("Invalid Data fields", 400);
 
-  const existingUserByEmail = await User.findOne({ email });
+  const existingUserByEmail = await User.findOne({ email }).select(" _id name email password role createdAt ");
   if (!existingUserByEmail) throw new AppError("No user Exist", 404);
 
   if (!(await comparePassword(password, existingUserByEmail.password)))
@@ -60,6 +68,15 @@ export const loginController = async (req, res) => {
   const accessToken = await generateAccessToken(existingUserByEmail._id);
   res.set("Authorization", accessToken).status(200).json({
     message: "User logged in Succesfully",
+    data: {
+      user: {
+        _id: existingUserByEmail._id,
+        name: existingUserByEmail.name,
+        email: existingUserByEmail.email,
+        role: existingUserByEmail.role,
+        createdAt: existingUserByEmail.createdAt
+      }
+    },
   });
 };
 
@@ -70,7 +87,7 @@ export const logoutController = async (req, res) => {
   const ttl = exp - now;
   if (ttl > 1) {
     const redis = getRedis();
-    const res = await redis.set(`bl:${token}`, "1", "EX", ttl)
+    await redis.set(`bl:${token}`, "1", "EX", ttl)
   }
   res.status(200).json({
     status: "success",
@@ -79,10 +96,18 @@ export const logoutController = async (req, res) => {
 }
 
 export const getMe = async (req, res, next) => {
-  const user = await User.findById(req.userId).select("_id name email createdAt");
+  const user = await User.findById(req.userId).select("_id name email role createdAt");
   if (!user) return next(new AppError("User not found", 404));
   res.status(200).json({
     status: "success",
-    data: { user }
+    data: {
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        createdAt: user.createdAt
+      }
+    }
   });
 };
