@@ -10,7 +10,7 @@ export const createVideoController = async (req, res) => {
   const uploadedFile = req.file;
   if (!uploadedFile) throw new AppError("Invalid file", 400);
   try {
-    const idempotencyKey = req?.headers?.idempotencykey;
+    const idempotencyKey = req?.headers?.["idempotency-key"];
     if (!idempotencyKey) throw new AppError("No Idempotency Key", 400);
     const { title, description } = req.body;
     if (!title) throw new AppError("Title is required", 400);
@@ -24,7 +24,7 @@ export const createVideoController = async (req, res) => {
         videoId: existingVideo._id,
         title: existingVideo.title,
         status: existingVideo.status,
-        streamUrl: existingVideo.url,
+        url: existingVideo.url,
         thumbnail: existingVideo.thumbnail,
       });
       fileClearing(uploadedFile.path);
@@ -35,13 +35,13 @@ export const createVideoController = async (req, res) => {
       owner: req.userId,
       status: "PROCESSING",
       title,
-      description,
+      des : description || "",
       filename: uploadedFile.originalname,
       idempotencyKey: idempotencyKey,
     });
 
     res.status(200).json({
-      staus: "Processing",
+      status: "Processing",
       videoId: savedVideo._id,
     });
 
@@ -75,7 +75,7 @@ export const getVideoControllerbyId = async (req, res) => {
       videoId,
       title: cachedVideo.title,
       status: cachedVideo.status,
-      streamUrl: cachedVideo.url || null,
+      url: cachedVideo.url || null,
       thumbnail: cachedVideo.thumbnail || null,
     });
     logger.info("Cache Hit");
@@ -88,7 +88,7 @@ export const getVideoControllerbyId = async (req, res) => {
     videoId: video._id,
     title: video.title,
     status: video.status,
-    streamUrl: video.status === "READY" ? video.url : null,
+    url: video.status === "READY" ? video.url : null,
     thumbnail: video.thumbnail || null,
   });
   saveVideoData(videoId, video.status, video.title, video.url, video.thumbnail);
@@ -109,16 +109,14 @@ export const getMyVideos = async (req, res) => {
       .skip(skip)
       .limit(limit)
       .select(
-        "_id description status title thumbnail duration createdAt"
+        "_id des status url title thumbnail duration createdAt"
       ),
     Video.countDocuments(filter),
   ]);
 
-  console.log(videos);
-
   res.status(200).json({
     success: true,
-    data: videos,
+    videos: videos,
     meta: {
       page,
       limit,
