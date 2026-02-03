@@ -1,9 +1,13 @@
 import { Router } from "express";
-import { upload } from "../middlewares/multer.js";
+import express from "express";
 import {
-  createVideoController,
   getVideoControllerbyId,
-  getMyVideos
+  getMyVideos,
+  initUploadController,
+  completeUploadController,
+  uploadChunkController,
+  getUploadStatusController,
+  cloudinaryWebhookController
 } from "../controller/video.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { authMiddleware } from "../middlewares/auth.js";
@@ -14,12 +18,26 @@ import {
 const videoRouter = Router();
 
 videoRouter.post(
-  "/",
+  "/init",
   authMiddleware,
   rateLimitMiddleware("UPLOAD", (req) => req.userId || req.ip),
-  upload.single("video"),
-  asyncHandler(createVideoController),
+  asyncHandler(initUploadController),
 );
+
+videoRouter.post(
+  "/chunk",
+  authMiddleware,
+  rateLimitMiddleware("UPLOAD", (req) => req.userId || req.ip),
+  asyncHandler(uploadChunkController),
+);
+
+videoRouter.post(
+  "/complete",
+  authMiddleware,
+  rateLimitMiddleware("UPLOAD", (req) => req.userId || req.ip),
+  asyncHandler(completeUploadController),
+);
+
 
 videoRouter.get(
   "/my",
@@ -34,6 +52,21 @@ videoRouter.get(
   rateLimitMiddleware("GET", (req) => req.ip),
   asyncHandler(getVideoControllerbyId),
 );
+
+videoRouter.get(
+  "/status/:uploadId",
+  authMiddleware,
+  rateLimitMiddleware("GET", (req) => req.userId || req.ip),
+  asyncHandler(getUploadStatusController),
+);
+
+videoRouter.post(
+  "/webhooks/cloudinary",
+  express.json({ limit: "1mb" }),
+  asyncHandler(cloudinaryWebhookController),
+);
+
+
 
 
 export default videoRouter;

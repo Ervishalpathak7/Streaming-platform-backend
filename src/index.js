@@ -7,6 +7,8 @@ import { logger } from "./utils/winston.js";
 import { v2 } from "cloudinary";
 import app from "./app.js";
 import { rateLimitstart } from "./middlewares/rateLimiting.js";
+import { cleanupAbandonedUploads } from "./utils/cleanup.js";
+import { set } from "mongoose";
 
 const PORT = process.env.PORT;
 const MONGO_URI = process.env.MONGO_URI;
@@ -44,6 +46,19 @@ const startServer = async () => {
     server = app.listen(PORT, () => {
       logger.info(`Server running at http://localhost:${PORT}`);
     });
+    setInterval(() => {
+      cleanupAbandonedUploads().catch((err) => {
+        logger.error("Failed to cleanup abandoned uploads", {
+          category: "cleanup",
+          service: "app",
+          code: "CLEANUP_FAILED",
+          lifecycle: "process",
+          error: err,
+        });
+      });
+    }, 15 * 60 * 1000); // every 15 minutes
+
+
 
   } catch (error) {
     await gracefullShutdown();

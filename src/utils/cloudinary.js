@@ -1,24 +1,21 @@
 import { Video } from "../models/video.js";
 import { v2 } from "cloudinary";
 import { logger } from "./winston.js";
-import { saveVideoData } from "../cache/index.js";
 import { fileClearing } from "./fileClearning.js";
 
-export const uploadVideoToCloudinary = async (videoId, videoPath, title) => {
-  let err = false;
-  let url;
-  let thumbnail;
-  let duration;
+export const uploadVideoToCloudinary = async (videoId, videoPath) => {
   try {
-    const result = await v2.uploader.upload(videoPath, {
+    const result = await v2.uploader.upload_large(videoPath, {
       resource_type: "video",
+      public_id: videoId,
+      folder: "videos",
+
+      chunk_size: 6 * 1024 * 1024, // 6MB
+
       eager: [
         {
           streaming_profile: "auto",
-        },
-        {
           format: "m3u8",
-          quality: "auto",
         },
         {
           width: 320,
@@ -28,44 +25,41 @@ export const uploadVideoToCloudinary = async (videoId, videoPath, title) => {
           start_offset: "auto",
         },
       ],
+
+      eager_async: true,
+
+      eager_notification_url: process.env.CLOUDINARY_WEBHOOK_URL,
     });
 
-    url = result?.eager[1].secure_url;
-    thumbnail = result.eager[2].secure_url;
-    duration = Number(result.duration.toFixed(1));
-    logger.info(`Video File processed successfully : ${videoId}`);
-    await Video.findByIdAndUpdate(videoId, {
-      status: "READY",
-      url,
-      duration,
-      thumbnail,
+    logger.info("Cloudinary upload accepted", {
+      videoId,
+      bytes: result.bytes,
     });
-    logger.info(`Video File data updated : ${videoId}`);
+
+    // Only mark PROCESSING here
+    await Video.findByIdAndUpdate(videoId, {
+      status: "PROCESSING",
+      size: result.bytes,
+    });
   } catch (error) {
-    err = true;
     await Video.findByIdAndUpdate(videoId, {
       status: "FAILED",
-      url,
-      thumbnail,
+      error: "Cloudinary upload failed",
     });
-    logger.error("Video processing failed in Cloudinary", {
+
+    logger.error("Video upload failed in Cloudinary", {
       category: "external",
       service: "cloudinary",
-      lifecycle: "process",
-      code: "VIDEO_PROCESSING_FAILED",
+      lifecycle: "upload",
+      code: "VIDEO_UPLOAD_FAILED",
       videoId,
       videoPath,
-      error: error?.message,
-      stack: error?.stack
+      error,
     });
+    throw error;
   } finally {
     if (videoPath) {
       fileClearing(videoPath);
-      if (!err) {
-        await saveVideoData(videoId, "READY", title, duration, url, thumbnail);
-        return;
-      }
-      await saveVideoData(videoId, "FAILED", title);
     }
   }
 };

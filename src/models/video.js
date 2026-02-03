@@ -7,40 +7,81 @@ const VideoSchema = new Schema(
       ref: "Users",
       required: true,
     },
+
     title: {
       type: String,
       required: true,
+      trim: true,
+      maxlength: 100,
     },
-    des: {
+
+    description: {
       type: String,
-      default: null,
+      default: "",
+      maxlength: 500,
     },
+
     filename: {
       type: String,
       required: true,
     },
-    url: String,
-    duration : Number,
+
+    // ========= Upload tracking =========
+    uploadId: {
+      type: String,
+      required: true,
+      unique: true,
+    },
+
+
+    totalChunks: {
+      type: Number,
+      required: true,
+      min: 1,
+    },
+
+    receivedChunks: {
+      type: [Number],
+      default: [],
+    },
+
+    // ========= Processing =========
     status: {
       type: String,
-      enum: ["PROCESSING", "READY", "FAILED"],
-      default: "PROCESSING",
+      enum: ["UPLOADING", "MERGING", "PROCESSING", "READY", "FAILED"],
+      default: "UPLOADING",
       required: true,
     },
-    thumbnail: String,
-    idempotencyKey: {
+
+    url: {
       type: String,
-      required: true,
+      default: null,
+    },
+
+    thumbnail: {
+      type: String,
+      default: null,
+    },
+
+    duration: {
+      type: Number,
+    },
+
+    size: {
+      type: Number,
+    },
+
+    error: {
+      type: String,
     },
   },
   { timestamps: true }
 );
 
-VideoSchema.index({ idempotencyKey: 1 }, { unique: true });
-VideoSchema.index(
-  { owner: 1, createdAt: -1 },
-  { partialFilterExpression: { status: "READY" } }
-);
+// Dashboard queries
+VideoSchema.index({ owner: 1, createdAt: -1 });
 
+// Processing workers / monitoring
+VideoSchema.index({ status: 1, updatedAt: -1 });
 
-export const Video = new model("Videos", VideoSchema);
+export const Video = model("Videos", VideoSchema);

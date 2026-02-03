@@ -5,6 +5,7 @@ export const fileClearing = async (filepath) => {
   if (!filepath) return;
   try {
     await fs.unlink(filepath);
+    logger.info("File cleaned up successfully");
   } catch (err) {
     logger.warn("File cleanup failed", {
       category: "server",
