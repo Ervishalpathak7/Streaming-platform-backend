@@ -15,9 +15,10 @@ jobs :
       - name : Deploy to Server
         uses : easingthemes/ssh-deploy@v2.1.5
         with :
-          ssh-private-key : ${{ secrets.SSH_PRIVATE_KEY }}
-          remote-user : ${{ secrets.REMOTE_USER }}
-          server-ip : ${{ secrets.SERVER_IP }}
+          host : ${{ secrets.SERVER_HOST }}
+          ssh-private-key : ${{ secrets.SERVER_SSH_KEY }}
+          remote-user : ${{ secrets.SERVER_USER }}
+          server-ip : ${{ secrets.SERVER_HOST }}
           script : |
             cd /Streaming-platform-backend
             git pull origin main
