@@ -31,7 +31,6 @@ export const getUploadPartUrls = async (key, uploadId, totalParts) => {
                 UploadId: uploadId,
                 PartNumber: partNumber,
             });
-            console.log(`Generating signed URL for part ${partNumber}`);
             const signedUrl = await getSignedUrl(s3, command, { expiresIn: 5 * 60 });
             urls.push({ partNumber, signedUrl });
         }
