@@ -188,7 +188,8 @@ export const completeUploadControllerV2 = async (req, res) => {
 
 export const getMyVideosControllerV2 = async (req, res) => {
     try {
-        const videos = await Video.find({ owner: req.userId }).select(
+        // conly fetch videos with status UPLOADED or PROCESSING or READY or FAILED
+        const videos = await Video.find({ owner: req.userId, status: { $in: ["UPLOADED", "PROCESSING", "READY" , "FAILED"] } }).select(
             "_id title description status createdAt url thumbnail duration"
         );
         res.status(200).json({
