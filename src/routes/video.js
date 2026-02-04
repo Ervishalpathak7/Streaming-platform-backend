@@ -3,8 +3,6 @@ import {
   getVideoControllerbyId,
   getMyVideos,
   initUploadController,
-  completeUploadController,
-  uploadChunkController,
   getUploadStatusController,
 } from "../controller/video.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
@@ -21,21 +19,6 @@ videoRouter.post(
   rateLimitMiddleware("UPLOAD", (req) => req.userId || req.ip),
   asyncHandler(initUploadController),
 );
-
-videoRouter.post(
-  "/chunk",
-  authMiddleware,
-  rateLimitMiddleware("UPLOAD", (req) => req.userId || req.ip),
-  asyncHandler(uploadChunkController),
-);
-
-videoRouter.post(
-  "/complete",
-  authMiddleware,
-  rateLimitMiddleware("UPLOAD", (req) => req.userId || req.ip),
-  asyncHandler(completeUploadController),
-);
-
 
 videoRouter.get(
   "/my",
