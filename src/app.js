@@ -4,6 +4,7 @@ import { errorHandler } from "./middlewares/errorHandeling.js";
 import videoRouter from "./routes/video.js";
 import { requestTimer } from "./utils/request-timer.js";
 import cors from "cors"
+import v2VideoRouter from "./routes/v2/video.js";
 
 
 const app = express();
@@ -37,6 +38,7 @@ app.use(requestTimer);
 app.get("/health", (req, res) => { res.status(200).json({ status: "ok" }) });
 app.use("/api/auth", authRouter);
 app.use("/api/videos", videoRouter);
+app.use("/api/v2/videos", v2VideoRouter); // v2 video routes
 
 // error handeling middleware
 app.use(errorHandler);
