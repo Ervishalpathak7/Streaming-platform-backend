@@ -1,6 +1,6 @@
 {
   "name": "streaming-platform-backend",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "streaming platform",
   "homepage": "https://github.com/Ervishalpathak7/Streaming-platform-backend#readme",
   "bugs": {
@@ -18,6 +18,8 @@
     "start": "node src/index.js"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.981.0",
+    "@aws-sdk/s3-request-presigner": "^3.981.0",
     "bcrypt": "^6.0.0",
     "busboy": "^1.6.0",
     "cloudinary": "^2.8.0",
