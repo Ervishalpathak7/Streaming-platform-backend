@@ -26,11 +26,12 @@ export const getUploadPartUrls = async (key, uploadId, totalParts) => {
     try {
         for (let partNumber = 1; partNumber <= totalParts; partNumber++) {
             const command = new UploadPartCommand({
-                Bucket: process.env.AWS_S3_BUCKET_NAME,
+                Bucket: process.env.S3_BUCKET,
                 Key: key,
                 UploadId: uploadId,
                 PartNumber: partNumber,
             });
+            console.log(`Generating signed URL for part ${partNumber}`);
             const signedUrl = await getSignedUrl(s3, command, { expiresIn: 5 * 60 });
             urls.push({ partNumber, signedUrl });
         }
