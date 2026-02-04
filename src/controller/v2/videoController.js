@@ -10,7 +10,7 @@ import mongoose from "mongoose";
 import { CompleteMultipartUploadCommand } from "@aws-sdk/client-s3";
 
 export const initUploadControllerV2 = async (req, res) => {
-    const { title, description, filename, filesize, mimetype } = req.body || {};
+    const { title, description, filename, filesize, mimetype, duration } = req.body || {};
     const idempotencyKey = req.headers["idempotency-key"] || null;
 
     if (!idempotencyKey)
@@ -30,6 +30,9 @@ export const initUploadControllerV2 = async (req, res) => {
 
     if (filesize > 1 * 1024 * 1024 * 1024)
         throw new AppError("Max file size is 1GB", 400);
+
+    if (!duration || duration <= 0)
+        throw new AppError("Invalid video duration", 400);
 
     const ext = path.extname(filename).toLowerCase() || ".mp4";
     if (![".mp4", ".mkv", ".mov", ".avi"].includes(ext))
@@ -70,6 +73,7 @@ export const initUploadControllerV2 = async (req, res) => {
             status: "INITIATED",
             s3Key: key,
             size: filesize,
+            duration: duration,
             idempotencyKey: idempotencyKey,
         });
         res.status(201).json({
@@ -179,5 +183,19 @@ export const completeUploadControllerV2 = async (req, res) => {
     } catch (error) {
         logger.error("Error in completeUploadControllerV2:", error);
         throw new AppError("Could not complete upload", 500);
+    }
+};
+
+export const getMyVideosControllerV2 = async (req, res) => {
+    try {
+        const videos = await Video.find({ owner: req.userId }).select(
+            "_id title description status createdAt url thumbnail duration"
+        );
+        res.status(200).json({
+            data: videos,
+        });
+    } catch (error) {
+        logger.error("Error in getMyVideosControllerV2:", error);
+        throw new AppError("Could not get videos", 500);
     }
 };
