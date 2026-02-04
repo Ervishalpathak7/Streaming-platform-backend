@@ -10,7 +10,7 @@ import mongoose from "mongoose";
 import { CompleteMultipartUploadCommand } from "@aws-sdk/client-s3";
 
 export const initUploadControllerV2 = async (req, res) => {
-    const { title , description, filename, filesize, mimetype } = req.body || {};
+    const { title, description, filename, filesize, mimetype } = req.body || {};
     const idempotencyKey = req.headers["idempotency-key"] || null;
 
     if (!idempotencyKey)
@@ -120,66 +120,64 @@ export const getSignedUrlControllerV2 = async (req, res) => {
         throw new AppError("Could not get signed URL", 500);
     }
 }
+
 export const completeUploadControllerV2 = async (req, res) => {
-  const { videoId } = req.params;
-  const { parts } = req.body; 
+    const { videoId } = req.params;
+    const { parts } = req.body;
 
-  if (!mongoose.Types.ObjectId.isValid(videoId))
-    throw new AppError("Invalid video ID", 400);
+    if (!mongoose.Types.ObjectId.isValid(videoId))
+        throw new AppError("Invalid video ID", 400);
+    if (!Array.isArray(parts) || parts.length === 0)
+        throw new AppError("Parts are required to complete upload", 400);
 
-  if (!Array.isArray(parts) || parts.length === 0)
-    throw new AppError("Parts are required to complete upload", 400);
+    try {
+        const video = await Video.findOne({
+            _id: videoId,
+            owner: req.userId,
+        });
 
-  try {
-    const video = await Video.findOne({
-      _id: videoId,
-      owner: req.userId,
-    });
+        if (!video)
+            throw new AppError("Video not found", 404);
+        if (video.status === "FAILED")
+            throw new AppError(
+                "Upload previously failed. Please re-initiate upload.",
+                400
+            );
 
-    if (!video)
-      throw new AppError("Video not found", 404);
+        if (video.status !== "INITIATED") {
+            return res.status(200).json({
+                data: {
+                    videoId: video._id,
+                    status: video.status,
+                    message: `Video is currently ${video.status}`,
+                },
+            });
+        }
+        await s3.send(
+            new CompleteMultipartUploadCommand({
+                Bucket: process.env.S3_BUCKET,
+                Key: video.s3Key,
+                UploadId: video.s3UploadId,
+                MultipartUpload: {
+                    Parts: parts.map(p => ({
+                        PartNumber: p.partNumber,
+                        ETag: p.etag,
+                    })),
+                },
+            })
+        );
 
-    if (video.status === "FAILED")
-      throw new AppError(
-        "Upload previously failed. Please re-initiate upload.",
-        400
-      );
+        video.status = "UPLOADED";
+        await video.save();
 
-    if (video.status !== "INITIATED") {
-      return res.status(200).json({
-        data: {
-          videoId: video._id,
-          status: video.status,
-          message: `Video is currently ${video.status}`,
-        },
-      });
+        res.status(200).json({
+            data: {
+                videoId: video._id,
+                status: video.status,
+            },
+        });
+    } catch (error) {
+        logger.error("Error in completeUploadControllerV2:", error);
+        throw new AppError("Could not complete upload", 500);
     }
-
-    await s3.send(
-      new CompleteMultipartUploadCommand({
-        Bucket: process.env.S3_BUCKET,
-        Key: video.s3Key,
-        UploadId: video.s3UploadId,
-        MultipartUpload: {
-          Parts: parts.map(p => ({
-            PartNumber: p.partNumber,
-            ETag: p.etag,
-          })),
-        },
-      })
-    );
-
-    video.status = "UPLOADED";
-    await video.save();
-
-    res.status(200).json({
-      data: {
-        videoId: video._id,
-        status: video.status,
-      },
-    });
-  } catch (error) {
-    logger.error("Error in completeUploadControllerV2:", error);
-    throw new AppError("Could not complete upload", 500);
-  }
 };
