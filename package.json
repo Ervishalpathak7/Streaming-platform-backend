@@ -15,7 +15,7 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "start": "node src/index.js"
+    "start": "node src/config.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.981.0",
