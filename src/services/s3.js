@@ -1,27 +1,44 @@
-import { PutObjectCommand } from "@aws-sdk/client-s3"
 import s3 from "../config.js"
+import { CreateMultipartUploadCommand, UploadPartCommand } from "@aws-sdk/client-s3"
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
 import { logger } from "../utils/winston.js"
 
-export const generatePutObjectPresignedUrl = async () => {
+export const createMultipartUpload = async (key, contentType) => {
     try {
-        const command = new PutObjectCommand({
+        const command = new CreateMultipartUploadCommand({
             Bucket: process.env.S3_BUCKET,
-            Key: `videos/test-video-${Date.now()}.mp4`,
-            ContentType: "video/mp4",
+            Key: key,
+            ContentType: contentType || "video/mp4",
         })
-        const presignedUrl = await getSignedUrl(s3, command, {
-            expiresIn: 5 * 60 // 5 minutes
-        });
-        return presignedUrl;
+        const response = await s3.send(command)
+        return {
+            uploadId: response.UploadId,
+            key: response.Key,
+        }
     } catch (error) {
-        logger.error("Failed to generate presigned URL", {
-            category: "s3",
-            service: "app",
-            code: "PRESIGNED_URL_GENERATION_FAILED",
-            lifecycle: "process",
-            error: error,
-        });
-        throw error;
+        logger.error("Error in createMultipartUpload:", error)
+        throw error
+    }
+}
+
+export const getUploadPartUrls = async (key, uploadId, totalParts) => {
+    const urls = [];
+    try {
+        for (let partNumber = 1; partNumber <= totalParts; partNumber++) {
+            const command = new UploadPartCommand({
+                Bucket: process.env.AWS_S3_BUCKET_NAME,
+                Key: key,
+                UploadId: uploadId,
+                PartNumber: partNumber,
+            });
+            const signedUrl = await getSignedUrl(s3, command, { expiresIn: 5 * 60 });
+            urls.push({ partNumber, signedUrl });
+        }
+
+        return urls;
+
+    } catch (error) {
+        logger.error("Error in getUploadPartUrl:", error)
+        throw error
     }
 }
