@@ -3,6 +3,7 @@ import { S3Client } from "@aws-sdk/client-s3";
 import './index.js'
 
 // S3 configuration
+export const CHUNK_SIZE = 10 * 1024 * 1024; // 10MB
 const s3 = new S3Client({
     region: process.env.S3_REGION,
     credentials: {
