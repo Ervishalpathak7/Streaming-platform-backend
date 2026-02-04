@@ -25,52 +25,47 @@ const VideoSchema = new Schema(
       type: String,
       required: true,
     },
-
     // ========= Upload tracking =========
-    uploadId: {
+    s3UploadId: {
       type: String,
       required: true,
       unique: true,
     },
-
-
     totalChunks: {
       type: Number,
       required: true,
       min: 1,
     },
-
-    receivedChunks: {
-      type: [Number],
-      default: [],
-    },
-
     // ========= Processing =========
     status: {
       type: String,
-      enum: ["UPLOADING", "MERGING", "PROCESSING", "READY", "FAILED"],
-      default: "UPLOADING",
+      enum: [ "INITIATED" ,"UPLOADED", "PROCESSING", "READY", "FAILED"],
+      default: "INITIATED",
       required: true,
     },
-
+    s3Key: {
+      type: String,
+      required: true,
+    },
+    idempotencyKey: {
+      type: String,
+      required: true,
+      unique: true,
+    },
     url: {
       type: String,
       default: null,
     },
-
     thumbnail: {
       type: String,
       default: null,
     },
-
     duration: {
       type: Number,
     },
-
     size: {
       type: Number,
     },
-
     error: {
       type: String,
     },
