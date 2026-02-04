@@ -5,11 +5,12 @@ import { logger } from "../../utils/winston.js";
 import { createMultipartUpload } from "../../services/s3.js";
 import { Video } from "../../models/video.js";
 import { getUploadPartUrls } from "../../services/s3.js";
-import { CHUNK_SIZE } from "../../config.js";
+import s3, { CHUNK_SIZE } from "../../config.js";
 import mongoose from "mongoose";
+import { CompleteMultipartUploadCommand } from "@aws-sdk/client-s3";
 
 export const initUploadControllerV2 = async (req, res) => {
-    const { title, description, filename, filesize, mimetype } = req.body || {};
+    const { title , description, filename, filesize, mimetype } = req.body || {};
     const idempotencyKey = req.headers["idempotency-key"] || null;
 
     if (!idempotencyKey)
@@ -36,7 +37,7 @@ export const initUploadControllerV2 = async (req, res) => {
 
     try {
         const totalParts = Math.ceil(filesize / CHUNK_SIZE);
-        const existingVideo = await Video.findOne({ owner: req.userId, idempotencyKey, filename, size: filesize });
+        const existingVideo = await Video.findOne({ owner: req.userId, idempotencyKey });
         if (existingVideo) {
             if (existingVideo.status === "UPLOADED" || existingVideo.status === "PROCESSING") {
                 return res.status(200).json({
@@ -50,15 +51,15 @@ export const initUploadControllerV2 = async (req, res) => {
                 return res.status(200).json({
                     data: {
                         videoId: existingVideo._id,
+                        status: existingVideo.status,
                     },
                 });
             }
         }
 
         const objectId = uuidv4();
-        const key = `v2/videos/${objectId}${ext}`;
+        const key = `videos/${objectId}${ext}`;
         const uploadData = await createMultipartUpload(key, mimetype);
-        console.log("Upload Data:", uploadData);
         const video = await Video.create({
             owner: req.userId,
             title: title.trim(),
@@ -89,7 +90,7 @@ export const getSignedUrlControllerV2 = async (req, res) => {
 
     if (!mongoose.Types.ObjectId.isValid(videoId))
         throw new AppError("Invalid video ID", 400);
-    
+
     if (!videoId)
         throw new AppError("Video ID is required", 400);
 
@@ -119,3 +120,66 @@ export const getSignedUrlControllerV2 = async (req, res) => {
         throw new AppError("Could not get signed URL", 500);
     }
 }
+export const completeUploadControllerV2 = async (req, res) => {
+  const { videoId } = req.params;
+  const { parts } = req.body; 
+
+  if (!mongoose.Types.ObjectId.isValid(videoId))
+    throw new AppError("Invalid video ID", 400);
+
+  if (!Array.isArray(parts) || parts.length === 0)
+    throw new AppError("Parts are required to complete upload", 400);
+
+  try {
+    const video = await Video.findOne({
+      _id: videoId,
+      owner: req.userId,
+    });
+
+    if (!video)
+      throw new AppError("Video not found", 404);
+
+    if (video.status === "FAILED")
+      throw new AppError(
+        "Upload previously failed. Please re-initiate upload.",
+        400
+      );
+
+    if (video.status !== "INITIATED") {
+      return res.status(200).json({
+        data: {
+          videoId: video._id,
+          status: video.status,
+          message: `Video is currently ${video.status}`,
+        },
+      });
+    }
+
+    await s3.send(
+      new CompleteMultipartUploadCommand({
+        Bucket: process.env.S3_BUCKET,
+        Key: video.s3Key,
+        UploadId: video.s3UploadId,
+        MultipartUpload: {
+          Parts: parts.map(p => ({
+            PartNumber: p.partNumber,
+            ETag: p.etag,
+          })),
+        },
+      })
+    );
+
+    video.status = "UPLOADED";
+    await video.save();
+
+    res.status(200).json({
+      data: {
+        videoId: video._id,
+        status: video.status,
+      },
+    });
+  } catch (error) {
+    logger.error("Error in completeUploadControllerV2:", error);
+    throw new AppError("Could not complete upload", 500);
+  }
+};
