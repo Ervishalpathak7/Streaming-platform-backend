@@ -1,5 +1,4 @@
 import { Router } from "express";
-import express from "express";
 import {
   getVideoControllerbyId,
   getMyVideos,
@@ -7,7 +6,6 @@ import {
   completeUploadController,
   uploadChunkController,
   getUploadStatusController,
-  cloudinaryWebhookController
 } from "../controller/video.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { authMiddleware } from "../middlewares/auth.js";
@@ -59,14 +57,6 @@ videoRouter.get(
   rateLimitMiddleware("GET", (req) => req.userId || req.ip),
   asyncHandler(getUploadStatusController),
 );
-
-videoRouter.post(
-  "/webhooks/cloudinary",
-  express.json({ limit: "1mb" }),
-  asyncHandler(cloudinaryWebhookController),
-);
-
-
 
 
 export default videoRouter;
