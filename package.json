@@ -20,6 +20,7 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.981.0",
     "@aws-sdk/s3-request-presigner": "^3.981.0",
+    "@trpc/server": "^11.9.0",
     "bcrypt": "^6.0.0",
     "busboy": "^1.6.0",
     "cloudinary": "^2.8.0",
@@ -33,6 +34,10 @@
     "multer": "^2.0.2",
     "rate-limiter-flexible": "^9.0.1",
     "uuid": "^13.0.0",
-    "winston": "^3.19.0"
+    "winston": "^3.19.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
   }
 }
