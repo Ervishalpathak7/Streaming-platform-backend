@@ -1,6 +1,5 @@
 import jwt from "jsonwebtoken";
 import { AppError, UnauthorizedError } from "@/error/index.js";
-import type { Types } from "mongoose";
 import logger from "@/lib/winston.js";
 
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -9,9 +8,9 @@ if (!JWT_SECRET) {
   throw new Error("JWT_SECRET is not defined in environment variables");
 }
 
-export const generateAccessToken = async (userId: Types.ObjectId) => {
+export const generateAccessToken = async (userId: string, role: string) => {
   try {
-    return jwt.sign({ userId: userId }, JWT_SECRET, {
+    return jwt.sign({ userId: userId, role: role }, JWT_SECRET, {
       algorithm: "HS256",
       expiresIn: "30MINUTES",
     });
@@ -25,8 +24,8 @@ export const generateAccessToken = async (userId: Types.ObjectId) => {
     });
     throw new AppError(
       "Token Generation failed",
-      500,
-      new Error("JWT generation error"),
+      "JWT_GENERATION_FAILED",
+      error instanceof Error ? error : new Error(String(error)),
     );
   }
 };
@@ -50,8 +49,8 @@ export const verifyAccessToken = (token: string) => {
     });
     throw new AppError(
       "Token verification failed",
-      500,
-      new Error("JWT verification error"),
+      "JWT_VERIFICATION_FAILED",
+      error instanceof Error ? error : new Error(String(error)),
     );
   }
 };
