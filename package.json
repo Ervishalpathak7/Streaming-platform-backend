@@ -15,8 +15,8 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "dev" : "npx tsc --watch & nodemon dist/index.js",
-    "start": "node dist/index.js"
+    "dev": "npx tsx src/index.ts --watch",
+    "build": "tsc && tsc-alias && node dist/index.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.981.0",
@@ -45,6 +45,7 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/mongoose": "^5.11.96",
     "@types/node": "^25.2.2",
+    "tsc-alias": "^1.8.16",
     "typescript": "^5.9.3"
   }
 }
