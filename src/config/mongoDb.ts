@@ -28,12 +28,10 @@ try {
     error,
   });
 
-  if (error instanceof Error)
-    throw new AppError("Database connection failed", 500, error);
   throw new AppError(
     "Database connection failed",
-    500,
-    new Error("Unknown database connection error"),
+    "DB_CONNECTION_FAILED",
+    error instanceof Error ? error : new Error(String(error)),
   );
 }
 
@@ -44,10 +42,14 @@ export const disconnectDb = async () => {
     logger.error("Database disconnection failed", {
       category: "server",
       service: "db",
-      lifecycle: "process",
+      lifecycle: "shutdown",
       code: "DB_DISCONNECTION_FAILED",
       error,
     });
-    throw error;
+    throw new AppError(
+      "Database connection failed",
+      "DB_CONNECTION_FAILED",
+      error instanceof Error ? error : new Error(String(error)),
+    );
   }
 };
