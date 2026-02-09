@@ -1,5 +1,8 @@
-import { logger } from "./winston.js";
-export const requestTimer = (req, res, next) => {
+import logger from "@/lib/winston.js";
+import type { Request, Response, NextFunction } from "express";
+
+
+export const requestTimer = (req: Request, res: Response, next: NextFunction) => {
   const start = process.hrtime.bigint();
   res.on("finish", () => {
     const end = process.hrtime.bigint();
