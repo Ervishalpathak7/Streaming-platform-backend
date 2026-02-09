@@ -16,7 +16,7 @@
   "main": "index.js",
   "scripts": {
     "dev" : "npx tsc --watch & nodemon dist/index.js",
-    "start": "node src/config.js"
+    "start": "node dist/index.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.981.0",
