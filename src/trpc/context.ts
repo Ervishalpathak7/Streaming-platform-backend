@@ -1,30 +1,40 @@
-import { UnauthorizedError } from "@/error/index.js";
 import { verifyAccessToken } from "@/lib/jwt.js";
-import type { Request } from "express";
+import type { Request, Response } from "express";
 
-export async function createContext({ req }: { req: Request }) {
-  const authHeader = req.headers.authorization || undefined;
+export async function createContext({
+  req,
+  res,
+}: {
+  req: Request;
+  res: Response;
+}) {
   let userId: string | null = null;
+  const ip: string | null =
+    req.ip ||
+    (Array.isArray(req.headers["x-forwarded-for"])
+      ? req.headers["x-forwarded-for"][0]
+      : req.headers["x-forwarded-for"]) ||
+    req.socket.remoteAddress ||
+    null;
+
+  const authHeader = req.headers.authorization || undefined;
   if (authHeader && authHeader.startsWith("Bearer ")) {
     const token = authHeader.split(" ")[1];
     if (token) {
       try {
         const decoded = verifyAccessToken(token);
-        if (typeof decoded === "object" && "userId" in decoded) {
+        if (typeof decoded === "object" && "userId" in decoded)
           userId = decoded.userId;
-        }
       } catch (error) {
-        if (error instanceof UnauthorizedError) {
-          throw error;
-        }
-        if (error instanceof Error) {
-          throw new Error(`Error verifying access token: ${error.message}`);
-        }
+        userId = null;
       }
     }
   }
   return {
     userId,
+    ip,
+    req,
+    res,
   };
 }
 
