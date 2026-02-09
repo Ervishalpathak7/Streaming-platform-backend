@@ -13,11 +13,11 @@ const istTimestamp = () =>
     hour12: false,
   }).format(new Date());
 
-export const devFormat = printf(({ level, message, ...meta }) => {
+const devFormat = printf(({ level, message, ...meta }) => {
   return `${istTimestamp()} ${level}: ${message} ${Object.keys(meta).length ? JSON.stringify(meta, null, 2) : ""}`
 });
 
-export const logger = createLogger({
+const logger = createLogger({
   level: "info",
   format: combine(errors({ stack: true }), json()),
   transports: [
@@ -38,3 +38,5 @@ export const logger = createLogger({
   ],
   exitOnError: false,
 });
+
+export default logger;
