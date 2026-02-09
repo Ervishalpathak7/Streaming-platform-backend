@@ -1,12 +1,6 @@
 import { Redis } from "ioredis";
 import type { Redis as RedisClient } from "ioredis";
-import type { Types } from "mongoose";
-import type { Video } from "@/models/video.model.js";
 import logger from "@/lib/winston.js";
-
-const VIDEO_CACHE_PREFIX = "video";
-const VIDEO_PROCESSING_TTL = 30; // 30 seconds
-const VIDEO_READY_TTL = 60 * 60 * 6; // 6 hours
 
 if (!process.env.REDIS_URL) {
   throw new Error("REDIS_HOST or REDIS_URL environment variable is not set");
