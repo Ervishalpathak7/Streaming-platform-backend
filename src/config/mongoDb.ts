@@ -1,21 +1,32 @@
+import logger from "@/lib/winston.js";
 import mongoose from "mongoose";
-import { logger } from "../utils/winston.js";
 
-export const connectDb = async (uri) => {
+if (!process.env.MONGO_URI) {
+  logger.error("MONGO_URI environment variable is not set", {
+    category: "server",
+    service: "db",
+    lifecycle: "startup",
+    code: "MONGO_URI_NOT_SET",
+  });
+  throw new Error("MONGO_URI environment variable is not set");
+}
+
+export const connectDb = async () => {
   try {
-    await mongoose.connect(uri, {
-      dbName: "streaming-platform",
+    await mongoose.connect(process.env.MONGO_URI as string, {
       maxPoolSize: 10,
+      serverSelectionTimeoutMS: 5000,
+      dbName: "streamKaro",
     });
+    logger.info("Database connection established");
   } catch (error) {
     logger.error("Database connection failed", {
       category: "server",
       service: "db",
-      lifecycle: "process",
+      lifecycle: "startup",
       code: "DB_CONNECTION_FAILED",
       error,
     });
-
     throw error;
   }
 };
