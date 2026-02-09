@@ -1,8 +1,8 @@
 import mongoose from "mongoose";
-import { disconnectDb } from "../database/index.js";
-import { server } from "../index.js";
-import { logger } from "./winston.js";
-import { disconnectCache, getRedis } from "../cache/index.js";
+import redisClient from "@/config/redis.js";
+import logger from "@/lib/winston.js";
+import { disconnectDb } from "@/config/mongoDb.js";
+import serverInstance from "@/index.js";
 
 export const gracefullShutdown = async () => {
   try {
@@ -13,9 +13,10 @@ export const gracefullShutdown = async () => {
     logger.info("MongoDB disconnected");
 
     // disconnectCache
-    if (getRedis()) await disconnectCache();
-    logger.info("Redis disconnected");
-
+    if (redisClient && redisClient.status === "ready") {
+      await redisClient.quit();
+      logger.info("Redis disconnected");
+    }
   } catch (err) {
     logger.error("Graceful shutdown failed", {
       category: "server",
@@ -25,8 +26,8 @@ export const gracefullShutdown = async () => {
       err,
     });
   } finally {
-    if (server) {
-      server.close(() => {
+    if (serverInstance) {
+      serverInstance.close(() => {
         logger.info("Server shut down gracefully");
         process.exit(0);
       });
