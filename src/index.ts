@@ -1,9 +1,10 @@
 import "dotenv/config";
-import "@/config/mongoDb.js";
+import "@/trpc/trpc.js";
 import "@/config/s3.js";
 import "@/config/redis.js";
-import logger from "@/lib/winston.js";
+import "@/config/mongoDb.js";
 import server from "@/config/server.js";
+import logger from "@/lib/winston.js";
 import { gracefullShutdown } from "@/utils/shutdown.js";
 
 if (!process.env.PORT) {
@@ -19,7 +20,7 @@ if (!process.env.PORT) {
 let serverInstance: ReturnType<typeof server.listen>;
 
 try {
-  serverInstance = server.listen(process.env.PORT, () =>
+    serverInstance = server.listen(process.env.PORT, () =>
     logger.info(`Server running at http://localhost:${process.env.PORT}`),
   );
 } catch (error) {
