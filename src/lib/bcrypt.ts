@@ -15,9 +15,11 @@ export const hashPassword = async (password: string) => {
     });
 
     throw new AppError(
-      "Internal Server Error",
-      500,
-      new Error("Password hashing failed"),
+      "Password hashing failed",
+      "PASSWORD_GENERATION_ERROR",
+      error instanceof Error
+        ? error
+        : new Error(String(error) || "Unknown error during password hashing"),
     );
   }
 };
@@ -38,9 +40,13 @@ export const comparePassword = async (
     });
 
     throw new AppError(
-      "Internal Server Error",
-      500,
-      new Error("Password comparison failed"),
+      "Password comparison failed",
+      "PASSWORD_COMPARISON_ERROR",
+      error instanceof Error
+        ? error
+        : new Error(
+            String(error) || "Unknown error during password comparison",
+          ),
     );
   }
 };
