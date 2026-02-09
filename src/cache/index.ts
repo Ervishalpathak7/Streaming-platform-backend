@@ -1,8 +1,8 @@
-import { logger } from "../utils/winston.js";
 import { Redis } from "ioredis";
 import type { Redis as RedisClient } from "ioredis";
 import type { Types } from "mongoose";
 import type { Video } from "@/models/video.model.js";
+import logger from "@/lib/winston.js";
 
 const VIDEO_CACHE_PREFIX = "video";
 const VIDEO_PROCESSING_TTL = 30; // 30 seconds
