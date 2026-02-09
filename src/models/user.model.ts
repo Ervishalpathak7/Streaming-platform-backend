@@ -1,4 +1,4 @@
-import mongoose, { Schema, Model } from "mongoose";
+import  { Schema, model, Types } from "mongoose";
 import { z } from "zod";
 
 const userSchemaType = z.object({
@@ -12,7 +12,7 @@ const userSchemaType = z.object({
     .min(8, "Password must be at least 8 characters long")
     .max(20, "Password must be less than 20 characters"),
   role: z.enum(["USER", "ADMIN"]).default("USER"),
-  files: z.array(z.string()),
+  videos: z.array(z.instanceof(Types.ObjectId)).optional(),
 });
 
 export type User = z.infer<typeof userSchemaType>;
@@ -21,26 +21,26 @@ const UserSchema = new Schema<User>(
   {
     name: {
       type: String,
-      require: true,
+      required: true,
     },
     email: {
       type: String,
-      require: true,
+      required: true,
       lowercase: true,
     },
     password: {
       type: String,
-      require: true,
+      required: true,
     },
     role: {
       type: String,
       enum: ["USER", "ADMIN"],
       default: "USER",
     },
-    files: [
+    videos: [
       {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "File",
+        type: Types.ObjectId,
+        ref: "Videos",
       },
     ],
   },
@@ -49,5 +49,5 @@ const UserSchema = new Schema<User>(
 
 UserSchema.index({ email: 1 }, { unique: true });
 
-const User: Model<User> = mongoose.model<User>("User", UserSchema);
+const User = model<User>("Users", UserSchema);
 export default User;
