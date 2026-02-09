@@ -1,7 +1,7 @@
-import  { Schema, model, Types } from "mongoose";
+import { Schema, model, Types } from "mongoose";
 import { z } from "zod";
 
-const userSchemaType = z.object({
+export const userSchemaType = z.object({
   name: z.string(),
   email: z
     .email("Invalid email address")
@@ -10,7 +10,8 @@ const userSchemaType = z.object({
   password: z
     .string()
     .min(8, "Password must be at least 8 characters long")
-    .max(20, "Password must be less than 20 characters"),
+    .max(20, "Password must be less than 20 characters")
+    .nullable(),
   role: z.enum(["USER", "ADMIN"]).default("USER"),
   videos: z.array(z.instanceof(Types.ObjectId)).optional(),
 });
@@ -30,7 +31,6 @@ const UserSchema = new Schema<User>(
     },
     password: {
       type: String,
-      required: true,
     },
     role: {
       type: String,
