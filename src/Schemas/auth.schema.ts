@@ -10,7 +10,6 @@ export const loginReqSchema = z.object({
 
 export const loginResSchema = z.object({
   message: z.string(),
-  status: z.enum(["success"]).default("success"),
   token: z.string().optional(),
 });
 
@@ -29,5 +28,4 @@ export const registerReqSchema = z.object({
 export const registerResSchema = z.object({
   message: z.string(),
   token: z.string(),
-  status: z.enum(["success"]).default("success"),
 });
