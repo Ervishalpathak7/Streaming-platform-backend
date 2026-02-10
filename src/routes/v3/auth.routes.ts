@@ -1,0 +1,64 @@
+import { createUser, findUserByEmail } from "@/services/user.services.js";
+import { router, publicProcedure } from "@/trpc/trpc.js";
+import { UnauthorizedError } from "@/error/index.js";
+import { z } from "zod";
+import { comparePassword } from "@/lib/bcrypt.js";
+import { generateAccessToken } from "@/lib/jwt.js";
+import { mapToTRPCError } from "@/trpc/mapError.js";
+import {
+  loginReqSchema,
+  loginResSchema,
+  registerReqSchema,
+  registerResSchema,
+} from "@/Schemas/auth.schema.js";
+
+export const trpcAuthRouter = router({
+  createUser: publicProcedure
+    .input(registerReqSchema)
+    .output(registerResSchema)
+    .mutation(
+      async ({ input }: { input: z.infer<typeof registerReqSchema> }) => {
+        try {
+          const user = await createUser(input);
+          const token = await generateAccessToken(
+            user._id.toString(),
+            user.role,
+          );
+          return {
+            message: "User created successfully",
+            token,
+            status: "success",
+          };
+        } catch (error) {
+          mapToTRPCError(error);
+        }
+      },
+    ),
+
+  loginUser: publicProcedure
+    .input(loginReqSchema)
+    .output(loginResSchema)
+    .mutation(async ({ input }: { input: z.infer<typeof loginReqSchema> }) => {
+      try {
+        const existingUser = await findUserByEmail(input.email);
+        if (!existingUser) throw new UnauthorizedError("email not registered");
+        const isPasswordValid = await comparePassword(
+          input.password,
+          existingUser.password as string,
+        );
+        if (!isPasswordValid) throw new UnauthorizedError("Invalid password");
+        // Generate JWT token logic here (e.g., using jsonwebtoken library)
+        const token = await generateAccessToken(
+          existingUser._id.toString(),
+          existingUser.role,
+        );
+        return {
+          message: "Login successful",
+          status: "success",
+          token,
+        };
+      } catch (error) {
+        mapToTRPCError(error);
+      }
+    }),
+});
