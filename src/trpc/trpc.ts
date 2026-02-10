@@ -2,8 +2,9 @@ import { initTRPC } from "@trpc/server";
 import type { Context } from "./context.js";
 import { ZodError } from "zod";
 import { formatZodErrors } from "@/utils/zodFormater.js";
+import type { OpenApiMeta } from "trpc-to-openapi";
 
-const trpc = initTRPC.context<Context>().create({
+const trpc = initTRPC.context<Context>().meta<OpenApiMeta>().create({
   errorFormatter({ shape, error }) {
     const isZodError = error.cause instanceof ZodError;
 

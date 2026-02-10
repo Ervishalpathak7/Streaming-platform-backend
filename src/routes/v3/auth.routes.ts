@@ -14,6 +14,21 @@ import {
 
 export const trpcAuthRouter = router({
   register: publicProcedure
+    .meta({
+      openapi: {
+        method: "POST",
+        path: "/register",
+        description: "Register a new user",
+        protect: false,
+        contentTypes: ["application/json"],
+        successDescription: "User created successfully",
+        errorResponses: [
+          400, // Bad Request (validation errors)
+          500, // Internal Server Error
+          429, // Too Many Requests (rate limiting)
+        ],
+      },
+    })
     .input(registerReqSchema)
     .output(registerResSchema)
     .mutation(
@@ -36,6 +51,21 @@ export const trpcAuthRouter = router({
     ),
 
   login: publicProcedure
+    .meta({
+      openapi: {
+        method: "POST",
+        path: "/login",
+        description: "Login a user",
+        protect: false,
+        contentTypes: ["application/json"],
+        successDescription: "Login successful",
+        errorResponses: [
+          400, // Bad Request (validation errors)
+          500, // Internal Server Error
+          429, // Too Many Requests (rate limiting)
+        ],
+      },
+    })
     .input(loginReqSchema)
     .output(loginResSchema)
     .mutation(async ({ input }: { input: z.infer<typeof loginReqSchema> }) => {

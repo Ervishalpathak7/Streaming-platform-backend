@@ -6,6 +6,22 @@ import z from "zod";
 
 export const trpcUserRouter = router({
   me: protectedProcedure
+    .meta({
+      openapi: {
+        method: "GET",
+        path: "/me",
+        tags: ["User"],
+        description: "Fetches the details of the currently authenticated user.",
+        protect: true,
+        contentTypes: ["application/json"],
+        successDescription: "User fetched successfully",
+        errorResponses: [
+          400, // Bad Request (validation errors)
+          500, // Internal Server Error
+          429, // Too Many Requests (rate limiting)
+        ],
+      },
+    })
     .input(z.undefined())
     .output(meResSchema)
     .query(async ({ ctx }) => {
