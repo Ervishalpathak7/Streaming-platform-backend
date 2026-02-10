@@ -1,13 +1,16 @@
 import { verifyAccessToken } from "@/lib/jwt.js";
 import type { Request, Response } from "express";
+import * as trpcExpress from "@trpc/server/adapters/express";
 
 export async function createContext({
   req,
   res,
-}: {
+}: trpcExpress.CreateExpressContextOptions): Promise<{
+  userId: string | null;
+  ip: string | null;
   req: Request;
   res: Response;
-}) {
+}> {
   let userId: string | null = null;
   const ip: string | null =
     req.ip ||
