@@ -3,9 +3,9 @@ import { trpcAuthRouter } from "./auth.routes.js";
 import { trpcUserRouter } from "./user.routes.js";
 
 
-export const trpcRouter = router({
+export const v3Router = router({
   auth: trpcAuthRouter,
   user : trpcUserRouter
 });
 
-export type TrpcRouter = typeof trpcRouter;
+export type V3Router = typeof v3Router;
