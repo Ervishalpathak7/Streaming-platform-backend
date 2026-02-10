@@ -13,7 +13,7 @@ import {
 } from "@/Schemas/auth.schema.js";
 
 export const trpcAuthRouter = router({
-  createUser: publicProcedure
+  register: publicProcedure
     .input(registerReqSchema)
     .output(registerResSchema)
     .mutation(
@@ -35,7 +35,7 @@ export const trpcAuthRouter = router({
       },
     ),
 
-  loginUser: publicProcedure
+  login: publicProcedure
     .input(loginReqSchema)
     .output(loginResSchema)
     .mutation(async ({ input }: { input: z.infer<typeof loginReqSchema> }) => {
