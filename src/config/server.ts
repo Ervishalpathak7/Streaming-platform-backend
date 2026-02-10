@@ -2,7 +2,7 @@ import express from "express";
 import cors from "cors";
 import * as trpcExpress from "@trpc/server/adapters/express";
 import { createContext } from "../trpc/context.js";
-import { trpcRouter } from "../routes/v3/trpcRouter.js";
+import { trpcRouter } from "@/routes/v3/trpcRouter.js";
 
 const server = express();
 server.set("trust proxy", true);
