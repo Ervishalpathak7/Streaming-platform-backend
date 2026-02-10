@@ -25,6 +25,7 @@ export const trpcAuthRouter = router({
         errorResponses: [
           400, // Bad Request (validation errors)
           500, // Internal Server Error
+          409, // Conflict (email already exists)
           429, // Too Many Requests (rate limiting)
         ],
       },
@@ -47,7 +48,6 @@ export const trpcAuthRouter = router({
           return {
             message: "User created successfully",
             token,
-            status: "success",
           };
         } catch (error) {
           mapToTRPCError(error);
@@ -68,6 +68,7 @@ export const trpcAuthRouter = router({
           400, // Bad Request (validation errors)
           500, // Internal Server Error
           429, // Too Many Requests (rate limiting)
+          401, // Unauthorized (invalid credentials)
         ],
       },
     })
@@ -82,14 +83,12 @@ export const trpcAuthRouter = router({
           existingUser.password as string,
         );
         if (!isPasswordValid) throw new UnauthorizedError("Invalid password");
-        // Generate JWT token logic here (e.g., using jsonwebtoken library)
         const token = await generateAccessToken(
           existingUser._id.toString(),
           existingUser.role,
         );
         return {
           message: "Login successful",
-          status: "success",
           token,
         };
       } catch (error) {
