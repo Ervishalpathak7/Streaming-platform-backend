@@ -2,7 +2,8 @@ import express from "express";
 import cors from "cors";
 import * as trpcExpress from "@trpc/server/adapters/express";
 import { createContext } from "../trpc/context.js";
-import { trpcRouter } from "@/routes/v3/trpcRouter.js";
+import { generateOpenApiDocument } from "trpc-to-openapi";
+import { trpcRouter } from "@/routes/appRouter.js";
 
 const server = express();
 server.set("trust proxy", true);
@@ -12,6 +13,14 @@ const allowedOrigins = [
   "http://localhost:5173",
   "https://www.streamkaro.app",
 ];
+
+export const openApiDocumentV2 = generateOpenApiDocument(trpcRouter.v3, {
+  title: "StreamKaro API Documentation",
+  version: "2.0.1",
+  baseUrl: "http://localhost:3000",
+  tags: ["User", "Video"],
+});
+
 server.use(
   cors({
     origin: function (origin, callback) {
@@ -34,11 +43,15 @@ server.get("/health", (req, res) => {
   res.status(200).json({ status: "ok" });
 });
 server.use(
-  "/trpc",
+  "/api/v3",
   trpcExpress.createExpressMiddleware({
-    router: trpcRouter,
+    router: trpcRouter.v3,
     createContext: createContext,
   }),
 );
+
+server.get("/api/v3/docs", (req, res) => {
+  res.json(openApiDocumentV2);
+});
 
 export default server;
