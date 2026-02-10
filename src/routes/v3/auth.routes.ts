@@ -17,7 +17,7 @@ export const trpcAuthRouter = router({
     .meta({
       openapi: {
         method: "POST",
-        path: "/register",
+        path: "/auth/register",
         description: "Register a new user",
         protect: false,
         contentTypes: ["application/json"],
@@ -59,7 +59,7 @@ export const trpcAuthRouter = router({
     .meta({
       openapi: {
         method: "POST",
-        path: "/login",
+        path: "/auth/login",
         description: "Login a user",
         protect: false,
         contentTypes: ["application/json"],
