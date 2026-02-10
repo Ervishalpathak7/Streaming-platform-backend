@@ -34,7 +34,12 @@ export const trpcAuthRouter = router({
     .mutation(
       async ({ input }: { input: z.infer<typeof registerReqSchema> }) => {
         try {
-          const user = await createUser(input);
+          const user = await createUser({
+            name: input.name,
+            email: input.email,
+            password: input.password,
+            role: "USER",
+          });
           const token = await generateAccessToken(
             user._id.toString(),
             user.role,
