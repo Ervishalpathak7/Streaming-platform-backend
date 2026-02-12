@@ -1,56 +1,71 @@
 export class AppError extends Error {
   originalError: Error | null;
   errorMessage: string;
+  meta: { [key: string]: any };
   constructor(
-    message: string,
     name: string,
+    message: string,
     originalError: Error | null = null,
+    meta = {},
   ) {
     super(message);
     this.name = name;
     this.errorMessage = message;
     this.originalError = originalError;
+    this.meta = meta;
   }
 }
 
 export class ValidationError extends AppError {
-  constructor(message: string) {
-    super(message, "ValidationError");
+  constructor(field: string, message: string) {
+    super("ValidationError", message, null, { field });
   }
 }
 
 export class NotFoundError extends AppError {
   constructor(message: string) {
-    super(message, "NotFoundError");
+    super("NotFoundError", message);
   }
 }
 
 export class InternalServerError extends AppError {
-  constructor(message: string , originalError: Error | null = null) {
-    super(message, "InternalServerError", originalError);
+  constructor(message: string, originalError: Error | null = null) {
+    super("InternalServerError", message, originalError);
   }
 }
 
 export class UnauthorizedError extends AppError {
   constructor(message: string) {
-    super(message, "UnauthorizedError");
+    super("UnauthorizedError", message);
   }
 }
 
 export class ForbiddenError extends AppError {
   constructor(message: string) {
-    super(message, "ForbiddenError");
+    super("ForbiddenError", message);
   }
 }
 
 export class ConflictError extends AppError {
   constructor(message: string) {
-    super(message, "ConflictError");
+    super("ConflictError", message);
   }
 }
 
 export class TooManyRequestsError extends AppError {
   constructor(message: string) {
-    super(message, "TooManyRequestsError");
+    super("TooManyRequestsError", message);
+  }
+}
+
+export class IdempotencyError extends AppError {
+  constructor(message: string) {
+    super("IdempotencyError", message);
+  }
+}
+
+export class UploadFailedError extends AppError {
+  constructor(message: string) {
+    super("UploadFailedError", message);
   }
 }
