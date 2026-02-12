@@ -27,7 +27,7 @@ const videoSchemaType = z.object({
   error: z.string().optional(),
 });
 
-export type Video = z.infer<typeof videoSchemaType>;
+export type VideoType = z.infer<typeof videoSchemaType>;
 
 type VideoStatus = "INITIATED" | "UPLOADED" | "PROCESSING" | "READY" | "FAILED";
 
