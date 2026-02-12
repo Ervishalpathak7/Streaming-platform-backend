@@ -1,0 +1,288 @@
+openapi: 3.0.3
+
+info:
+  title: StreamKaro API
+  description: API documentation for StreamKaro
+  version: 1.1.0
+
+servers:
+  - url: https://api.streamkaro.com/api/v1
+  - url: http://localhost:3000/api/v1
+
+tags:
+  - name: Auth
+  - name: User
+  - name: Video
+
+paths:
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: User login
+      operationId: loginUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful (refresh token set in httpOnly cookie)
+          headers:
+            Set-Cookie:
+              description: HttpOnly refresh token cookie
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthSuccessResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: User registration
+      operationId: registerUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: User registered successfully (refresh token set in httpOnly cookie)
+          headers:
+            Set-Cookie:
+              description: HttpOnly refresh token cookie
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthSuccessResponse'
+
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Refresh access token
+      operationId: refreshAccessToken
+      description: Issues a new access token using refresh token from httpOnly cookie.
+      responses:
+        '200':
+          description: Access token refreshed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthSuccessResponse'
+        '401':
+          description: Invalid or expired refresh token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /videos/upload/init:
+    post:
+      tags: [Video]
+      summary: Initialize multipart video upload
+      operationId: initVideoUpload
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InitUploadRequest'
+      responses:
+        '201':
+          description: Upload initialized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InitUploadResponse'
+
+  /videos/upload/presigned-urls:
+    post:
+      tags: [Video]
+      summary: Get presigned URLs for upload parts
+      operationId: getPresignedUrls
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PresignedUrlRequest'
+      responses:
+        '200':
+          description: Presigned URLs generated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PresignedUrlResponse'
+
+  /videos/upload/complete:
+    post:
+      tags: [Video]
+      summary: Complete multipart video upload
+      operationId: completeVideoUpload
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompleteUploadRequest'
+      responses:
+        '200':
+          description: Upload completed and processing started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 6
+
+    RegisterRequest:
+      type: object
+      required: [name, email, password]
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 6
+
+    AuthSuccessResponse:
+      type: object
+      required: [status, accessToken]
+      properties:
+        status:
+          type: string
+          example: success
+        accessToken:
+          type: string
+          description: Short-lived JWT access token
+
+    InitUploadRequest:
+      type: object
+      required: [filename, contentType, size]
+      properties:
+        filename:
+          type: string
+        contentType:
+          type: string
+          example: video/mp4
+        size:
+          type: integer
+          format: int64
+          example: 104857600
+
+    InitUploadResponse:
+      type: object
+      required: [videoId, uploadId]
+      properties:
+        videoId:
+          type: string
+        uploadId:
+          type: string
+
+    PresignedUrlRequest:
+      type: object
+      required: [videoId, uploadId, parts]
+      properties:
+        videoId:
+          type: string
+        uploadId:
+          type: string
+        parts:
+          type: array
+          items:
+            type: integer
+            example: 1
+
+    PresignedUrlResponse:
+      type: object
+      properties:
+        urls:
+          type: array
+          items:
+            type: object
+            required: [partNumber, url]
+            properties:
+              partNumber:
+                type: integer
+              url:
+                type: string
+                format: uri
+
+    CompleteUploadRequest:
+      type: object
+      required: [videoId, uploadId, parts]
+      properties:
+        videoId:
+          type: string
+        uploadId:
+          type: string
+        parts:
+          type: array
+          items:
+            type: object
+            required: [partNumber, etag]
+            properties:
+              partNumber:
+                type: integer
+              etag:
+                type: string
+
+    SuccessResponse:
+      type: object
+      required: [status, message]
+      properties:
+        status:
+          type: string
+          example: success
+        message:
+          type: string
+          example: Operation completed successfully
+
+    ErrorResponse:
+      type: object
+      required: [status, message]
+      properties:
+        status:
+          type: string
+          example: error
+        message:
+          type: string
