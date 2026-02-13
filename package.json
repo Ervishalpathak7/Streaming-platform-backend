@@ -32,6 +32,7 @@
     "express-session": "^1.18.2",
     "ioredis": "^5.9.1",
     "jsonwebtoken": "^9.0.3",
+    "mongodb": "^7.1.0",
     "mongoose": "^9.1.1",
     "multer": "^2.0.2",
     "openapi-generator": "^0.1.39",
