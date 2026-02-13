@@ -25,7 +25,7 @@ export const findUserById = async (id: string) => {
 
 export const findUserByEmail = async (email: string) => {
   try {
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email }).select("email password");
     if (!user) throw new NotFoundError("User not found");
     return user;
   } catch (error) {
