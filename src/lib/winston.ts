@@ -1,5 +1,18 @@
 import { createLogger, format, transports } from "winston";
+import { existsSync, mkdirSync } from "fs";
+import { dirname } from "path";
+import { fileURLToPath } from "url";
+
 const { combine, colorize, errors, json, printf } = format;
+
+// Ensure logs directory exists
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const logsDir = `${__dirname}/../../logs`;
+
+if (!existsSync(logsDir)) {
+  mkdirSync(logsDir, { recursive: true });
+}
 
 const istTimestamp = () =>
   new Intl.DateTimeFormat("en-IN", {
