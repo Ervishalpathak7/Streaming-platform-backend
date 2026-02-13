@@ -26,3 +26,7 @@ export class AppError extends Error {
     Error.captureStackTrace(this, this.constructor);
   }
 }
+
+export const normalizeError = (err: unknown): Error => {
+  return err instanceof Error ? err : new Error(String(err));
+};
