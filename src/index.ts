@@ -1,5 +1,4 @@
 import "dotenv/config";
-import "@/trpc/trpc.js";
 import "@/config/s3.js";
 import "@/config/redis.js";
 import "@/config/mongoDb.js";
@@ -20,7 +19,7 @@ if (!process.env.PORT) {
 let serverInstance: ReturnType<typeof server.listen>;
 
 try {
-    serverInstance = server.listen(process.env.PORT, () =>
+  serverInstance = server.listen(process.env.PORT, () =>
     logger.info(`Server running at http://localhost:${process.env.PORT}`),
   );
 } catch (error) {

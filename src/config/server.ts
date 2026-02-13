@@ -1,10 +1,12 @@
 import express from "express";
 import cors from "cors";
-import appRouter  from "@/routes/appRouter.js";
+import appRouter from "@/routes/appRouter.js";
 import { requestTimer } from "@/utils/request-timer.js";
 import { errorHandler } from "@/middlewares/errorHandler.middleware.js";
 import OpenApiValidator from "express-openapi-validator";
 import path from "path";
+import { fileURLToPath } from "url";
+
 
 const server = express();
 server.set("trust proxy", true);
@@ -18,6 +20,9 @@ const allowedOrigins = [
   "http://localhost:5173",
   "https://www.streamkaro.app",
 ];
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 server.use(
   OpenApiValidator.middleware({

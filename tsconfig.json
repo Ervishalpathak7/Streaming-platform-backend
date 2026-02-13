@@ -7,11 +7,11 @@
     "paths": {
       "@/*": ["./src/*"]
     },
-    "moduleResolution": "bundler",
+    "moduleResolution": "NodeNext",
 
     // Environment Settings
     // See also https://aka.ms/tsconfig/module
-    "module": "preserve",
+    "module": "NodeNext",
     "target": "ES2022",
     // For nodejs:
     "lib": ["esnext"],
@@ -42,6 +42,6 @@
     "isolatedModules": true,
     "noUncheckedSideEffectImports": true,
     "moduleDetection": "force",
-    "skipLibCheck": true,
+    "skipLibCheck": true
   }
 }
