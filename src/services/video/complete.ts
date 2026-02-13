@@ -1,4 +1,4 @@
-import s3 from "@/config/s3.js";
+import s3, { S3_BUCKET } from "@/config/s3.js";
 import {
   InternalServerError,
   NotFoundError,
@@ -36,22 +36,34 @@ export const completeUploadService = async (
         status: video.status,
       };
     }
-    await s3.send(
-      new CompleteMultipartUploadCommand({
-        Bucket: process.env.S3_BUCKET,
-        Key: video.s3Key,
-        UploadId: video.s3UploadId,
-        MultipartUpload: {
-          Parts: parts.map((p) => ({
-            PartNumber: p.partNumber,
-            ETag: p.etag,
-          })),
-        },
-      }),
-    );
+    
+    if (!S3_BUCKET) {
+      throw new InternalServerError("S3_BUCKET is not configured");
+    }
 
-    video.status = "UPLOADED";
-    await video.save();
+    try {
+      await s3.send(
+        new CompleteMultipartUploadCommand({
+          Bucket: S3_BUCKET,
+          Key: video.s3Key,
+          UploadId: video.s3UploadId,
+          MultipartUpload: {
+            Parts: parts.map((p) => ({
+              PartNumber: p.partNumber,
+              ETag: p.etag,
+            })),
+          },
+        }),
+      );
+
+      video.status = "UPLOADED";
+      await video.save();
+    } catch (s3Error) {
+      video.status = "FAILED";
+      video.error = s3Error instanceof Error ? s3Error.message : "S3 upload completion failed";
+      await video.save();
+      throw s3Error; // Re-throw to be handled by outer catch
+    }
 
     return {
       id: video._id,
