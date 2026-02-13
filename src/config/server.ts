@@ -2,12 +2,11 @@ import express from "express";
 import cors from "cors";
 import * as trpcExpress from "@trpc/server/adapters/express";
 import { createContext } from "../trpc/context.js";
-import { generateOpenApiDocument } from "trpc-to-openapi";
-import { trpcRouter } from "@/routes/appRouter.js";
-import fs from "fs";
-import * as OpenApiValidator from "express-openapi-validator";
+import { appRouter, trpcRouter } from "@/routes/appRouter.js";
 import { requestTimer } from "@/utils/request-timer.js";
 import { errorHandler } from "@/middlewares/errorHandler.middleware.js";
+import OpenApiValidator from "express-openapi-validator";
+import path from "path/win32";
 
 const server = express();
 server.set("trust proxy", true);
@@ -22,26 +21,9 @@ const allowedOrigins = [
   "https://www.streamkaro.app",
 ];
 
-export const openApiDocumentV3 = generateOpenApiDocument(trpcRouter.v3, {
-  title: "StreamKaro API Documentation",
-  version: "3.0.0",
-  baseUrl: "http://localhost:3000/api/v3",
-  tags: ["User", "Video"],
-});
-
-// create a docs folder if it doesn't exist
-if (!fs.existsSync("docs")) {
-  fs.mkdirSync("docs");
-}
-fs.writeFileSync(
-  "docs/openApiDocumentV3.json",
-  JSON.stringify(openApiDocumentV3, null, 2),
-);
-
 server.use(
-  "/api/v3",
   OpenApiValidator.middleware({
-    apiSpec: "docs/openApiDocumentV3.json",
+    apiSpec: path.join(__dirname, "../openapi.yml"),
     validateRequests: true,
     validateResponses: true,
   }),
@@ -55,7 +37,7 @@ server.use(
       else callback(new Error("Not allowed by CORS"));
     },
     credentials: true,
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization", "Idempotency-Key"],
     exposedHeaders: ["Authorization"],
   }),
@@ -65,6 +47,11 @@ server.use(
 server.get("/health", (req, res) => {
   res.status(200).json({ status: "ok" });
 });
+
+// REST API routes v1
+server.use("/api/v1", appRouter);
+
+// tRPC API routes v3
 server.use(
   "/api/v3",
   trpcExpress.createExpressMiddleware({
@@ -72,10 +59,6 @@ server.use(
     createContext: createContext,
   }),
 );
-
-server.get("/api/docs/v3", (req, res) => {
-  res.json(openApiDocumentV3);
-});
 
 server.use(errorHandler);
 
