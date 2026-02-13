@@ -4,26 +4,27 @@ import type { Request, Response, NextFunction } from "express";
 import logger from "@/lib/winston.js";
 import { normalizeError } from "@/error/index.js";
 import { InternalServerError } from "@/error/errors.js";
+import { RATE_LIMIT_CONFIG } from "@/config/constants.js";
 
 export const getRouteLimiter = new RateLimiterRedis({
   storeClient: redisClient,
   keyPrefix: "rl:get",
-  points: 100, // 100 requests
-  duration: 60, // per minute
+  points: RATE_LIMIT_CONFIG.GET.POINTS,
+  duration: RATE_LIMIT_CONFIG.GET.DURATION,
 });
 
 export const uploadRouteLimiter = new RateLimiterRedis({
   storeClient: redisClient,
   keyPrefix: "rl:upload",
-  points: 10, // 10 uploads
-  duration: 60, // per minute
+  points: RATE_LIMIT_CONFIG.UPLOAD.POINTS,
+  duration: RATE_LIMIT_CONFIG.UPLOAD.DURATION,
 });
 
 export const authRouteLimiter = new RateLimiterRedis({
   storeClient: redisClient,
   keyPrefix: "rl:auth",
-  points: 10, // 10 attempts
-  duration: 15 * 60, // per 15 minutes
+  points: RATE_LIMIT_CONFIG.AUTH.POINTS,
+  duration: RATE_LIMIT_CONFIG.AUTH.DURATION,
 });
 
 const keyGenerators = {
