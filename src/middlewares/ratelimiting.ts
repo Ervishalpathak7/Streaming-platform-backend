@@ -1,7 +1,9 @@
 import { RateLimiterRedis, RateLimiterRes } from "rate-limiter-flexible";
 import redisClient from "@/config/redis.js";
 import type { Request, Response, NextFunction } from "express";
-import logger from "@/lib/winston";
+import logger from "@/lib/winston.js";
+import { normalizeError } from "@/error/index.js";
+import { InternalServerError } from "@/error/errors.js";
 
 export const getRouteLimiter = new RateLimiterRedis({
   storeClient: redisClient,
@@ -46,12 +48,20 @@ export const rateLimitMiddleware = (
           retryAfter: Math.ceil(error.msBeforeNext / 1000),
         });
       }
-      if (error instanceof Error) {
-        logger.error(`Rate limiting error: ${error.message}`);
-      } else {
-        logger.error(`Rate limiting error: ${error}`);
-      }
-      return res.status(500).json({ message: "Internal server error" });
+      logger.error("Error in rate limiting middleware", {
+        method,
+        key: keyGenerators[method](req),
+        req: {
+          method: req.method,
+          url: req.url,
+          headers: req.headers,
+        },
+        error: normalizeError(error),
+      });
+      throw new InternalServerError(
+        "Error in rate limiting middleware",
+        normalizeError(error),
+      );
     }
   };
 };

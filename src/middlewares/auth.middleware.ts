@@ -1,8 +1,9 @@
 import type { NextFunction, Request, Response } from "express";
-import { verifyAccessToken } from "@/lib/jwt";
-import { isTokenBlacklisted } from "@/services/auth.service";
-import { InternalServerError, UnauthorizedError } from "@/error";
-import logger from "@/lib/winston";
+import { verifyAccessToken } from "@/lib/jwt.js";
+import { isTokenBlacklisted } from "@/services/auth.service.js";
+import { InternalServerError, UnauthorizedError } from "@/error/errors.js";
+import logger from "@/lib/winston.js";
+import { AppError, normalizeError } from "@/error/index.js";
 
 export const authMiddleware = async (
   req: Request,
@@ -22,11 +23,10 @@ export const authMiddleware = async (
     if (isBlacklisted) throw new UnauthorizedError("Token is blacklisted");
     const decoded = verifyAccessToken(token);
     req.userId = decoded.userId;
-
     return next();
   } catch (err) {
-    if (err instanceof UnauthorizedError || err instanceof InternalServerError)
-      throw err;
+    if (err instanceof AppError) throw err;
+
     logger.error("Error in auth middleware", {
       token: token,
       req: {
@@ -34,11 +34,12 @@ export const authMiddleware = async (
         url: req.url,
         headers: req.headers,
       },
-      error: err instanceof Error ? err.stack : String(err),
+      error: normalizeError(err),
     });
+
     throw new InternalServerError(
       "An error occurred while processing the token",
-      err instanceof Error ? err : new Error(String(err)),
+      normalizeError(err),
     );
   }
 };

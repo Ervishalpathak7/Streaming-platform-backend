@@ -14,7 +14,7 @@ const istTimestamp = () =>
   }).format(new Date());
 
 const devFormat = printf(({ level, message, ...meta }) => {
-  return `${istTimestamp()} ${level}: ${message} ${Object.keys(meta).length ? JSON.stringify(meta, null, 2) : ""}`
+  return `${istTimestamp()} ${level}: ${message} ${Object.keys(meta).length ? JSON.stringify(meta, null, 2) : ""}`;
 });
 
 const logger = createLogger({
@@ -22,7 +22,7 @@ const logger = createLogger({
   format: combine(errors({ stack: true }), json()),
   transports: [
     new transports.Console({
-      format: combine(colorize(), devFormat)
+      format: combine(colorize(), devFormat),
     }),
 
     new transports.File({

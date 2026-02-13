@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken";
-import { InternalServerError, UnauthorizedError } from "@/error/index.js";
+import { InternalServerError, UnauthorizedError } from "@/error/errors.js";
 import logger from "@/lib/winston.js";
+import { normalizeError } from "@/error/index.js";
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
@@ -32,7 +33,7 @@ export const generateAccessToken = async (userId: string, role: string) => {
     });
     throw new InternalServerError(
       "JWT_GENERATION_FAILED",
-      error instanceof Error ? error : new Error(String(error)),
+      normalizeError(error),
     );
   }
 };
@@ -51,7 +52,7 @@ export const verifyAccessToken = (token: string) => {
 
     throw new InternalServerError(
       "JWT_VERIFICATION_FAILED",
-      error instanceof Error ? error : new Error(String(error)),
+      normalizeError(error),
     );
   }
 };
@@ -73,7 +74,7 @@ export const generateRefreshToken = async (userId: string, role: string) => {
     });
     throw new InternalServerError(
       "JWT_REFRESH_GENERATION_FAILED",
-      error instanceof Error ? error : new Error(String(error)),
+      normalizeError(error),
     );
   }
 };
@@ -90,9 +91,17 @@ export const verifyRefreshToken = (token: string) => {
     )
       throw new UnauthorizedError("Invalid or expired refresh token");
 
+    logger.error("JWT refresh token verification failed", {
+      category: "user",
+      service: "jwt",
+      lifecycle: "request",
+      code: "JWT_REFRESH_VERIFICATION_FAILED",
+      error : normalizeError(error),
+    });
+
     throw new InternalServerError(
       "JWT_REFRESH_VERIFICATION_FAILED",
-      error instanceof Error ? error : new Error(String(error)),
+      normalizeError(error),
     );
   }
 };

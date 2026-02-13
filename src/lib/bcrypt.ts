@@ -1,6 +1,7 @@
 import bcrypt from "bcrypt";
-import { AppError } from "@/error/index.js";
+import { normalizeError } from "@/error/index.js";
 import logger from "@/lib/winston.js";
+import { InternalServerError } from "@/error/errors.js";
 
 export const hashPassword = async (password: string) => {
   try {
@@ -10,16 +11,13 @@ export const hashPassword = async (password: string) => {
       category: "server",
       service: "bcrypt",
       lifecycle: "request",
-      code: "PASSWORD_GENERATION_ERROR",
-      error: error,
+      code: "PASSWORD_HASHING_FAILED",
+      error: normalizeError(error),
     });
 
-    throw new AppError(
-      "Password hashing failed",
-      "PASSWORD_GENERATION_ERROR",
-      error instanceof Error
-        ? error
-        : new Error(String(error) || "Unknown error during password hashing"),
+    throw new InternalServerError(
+      "PASSWORD_HASHING_FAILED",
+      normalizeError(error),
     );
   }
 };
@@ -35,18 +33,13 @@ export const comparePassword = async (
       category: "server",
       service: "bcrypt",
       lifecycle: "request",
-      code: "PASSWORD_COMPARISON_ERROR",
-      error: error,
+      code: "PASSWORD_COMPARISON_FAILED",
+      error: normalizeError(error),
     });
 
-    throw new AppError(
-      "Password comparison failed",
-      "PASSWORD_COMPARISON_ERROR",
-      error instanceof Error
-        ? error
-        : new Error(
-            String(error) || "Unknown error during password comparison",
-          ),
+    throw new InternalServerError(
+      "PASSWORD_COMPARISON_FAILED",
+      normalizeError(error),
     );
   }
 };
