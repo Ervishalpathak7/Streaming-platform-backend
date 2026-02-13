@@ -55,8 +55,11 @@ export class QueryLimitExceededError extends AppError {
   }
 }
 
-export class invalidQueryParameterError extends AppError {
+export class InvalidQueryParameterError extends AppError {
   constructor(parameter: string, message: string) {
     super(message, 400, { meta: { parameter } });
   }
 }
+
+// Keep old name for backward compatibility
+export const invalidQueryParameterError = InvalidQueryParameterError;
