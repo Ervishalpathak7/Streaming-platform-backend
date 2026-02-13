@@ -4,14 +4,14 @@ import {
   getMyVideosControllerV1,
   initUploadControllerV1,
   getSignedUrlControllerV1,
-} from "@/controller/v1/videoController";
+} from "@/controller/v1/videoController.js";
 import {
   getRouteLimiter,
   rateLimitMiddleware,
   uploadRouteLimiter,
-} from "@/middlewares/ratelimiting";
-import { asyncHandler } from "@/utils/asyncHandler";
-import { authMiddleware } from "@/middlewares/auth.middleware";
+} from "@/middlewares/ratelimiting.js";
+import { asyncHandler } from "@/utils/asyncHandler.js";
+import { authMiddleware } from "@/middlewares/auth.middleware.js";
 
 const v1VideoRouter = Router();
 
