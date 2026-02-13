@@ -1,8 +1,5 @@
 import jwt from "jsonwebtoken";
-import {
-  InternalServerError,
-  UnauthorizedError,
-} from "@/error/index.js";
+import { InternalServerError, UnauthorizedError } from "@/error/index.js";
 import logger from "@/lib/winston.js";
 
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -18,10 +15,7 @@ if (!JWT_SECRET) {
   throw new Error("JWT_SECRET is not defined in environment variables");
 }
 
-export const generateAccessToken = async (
-  userId: string,
-  role: string,
-) => {
+export const generateAccessToken = async (userId: string, role: string) => {
   try {
     const payload = { userId, role };
     return jwt.sign(payload, JWT_SECRET, {
@@ -57,6 +51,47 @@ export const verifyAccessToken = (token: string) => {
 
     throw new InternalServerError(
       "JWT_VERIFICATION_FAILED",
+      error instanceof Error ? error : new Error(String(error)),
+    );
+  }
+};
+
+export const generateRefreshToken = async (userId: string, role: string) => {
+  try {
+    const payload = { userId, role };
+    return jwt.sign(payload, JWT_SECRET, {
+      algorithm: "HS256",
+      expiresIn: "7DAYS",
+    });
+  } catch (error) {
+    logger.warn("JWT refresh token generation failed", {
+      category: "user",
+      service: "jwt",
+      lifecycle: "request",
+      code: "JWT_REFRESH_GENERATION_FAILED",
+      error,
+    });
+    throw new InternalServerError(
+      "JWT_REFRESH_GENERATION_FAILED",
+      error instanceof Error ? error : new Error(String(error)),
+    );
+  }
+};
+
+export const verifyRefreshToken = (token: string) => {
+  try {
+    return jwt.verify(token, JWT_SECRET, {
+      algorithms: ["HS256"],
+    }) as JwtPayload;
+  } catch (error) {
+    if (
+      error instanceof jwt.TokenExpiredError ||
+      error instanceof jwt.JsonWebTokenError
+    )
+      throw new UnauthorizedError("Invalid or expired refresh token");
+
+    throw new InternalServerError(
+      "JWT_REFRESH_VERIFICATION_FAILED",
       error instanceof Error ? error : new Error(String(error)),
     );
   }
