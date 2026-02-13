@@ -8,32 +8,33 @@ import {
   refreshTokenControllerV1,
   registerControllerV1,
 } from "@/controller/v1/auth.controller.js";
-import { authMiddleware } from "@/middlewares/auth.middleware";
+import { authMiddleware } from "@/middlewares/auth.middleware.js";
 import {
   authRouteLimiter,
   rateLimitMiddleware,
-} from "@/middlewares/ratelimiting";
+} from "@/middlewares/ratelimiting.js";
+import { asyncHandler } from "@/utils/asyncHandler.js";
 
 v1AuthRouter.post(
   "/register",
   rateLimitMiddleware(authRouteLimiter, "AUTH"),
-  registerControllerV1,
+  asyncHandler(registerControllerV1),
 );
 v1AuthRouter.post(
   "/login",
   rateLimitMiddleware(authRouteLimiter, "AUTH"),
-  loginControllerV1,
+  asyncHandler(loginControllerV1),
 );
 v1AuthRouter.post(
   "/logout",
   rateLimitMiddleware(authRouteLimiter, "AUTH"),
-  logoutControllerV1,
+  asyncHandler(logoutControllerV1),
 );
 v1AuthRouter.post(
   "/refresh-token",
   authMiddleware,
   rateLimitMiddleware(authRouteLimiter, "AUTH"),
-  refreshTokenControllerV1,
+  asyncHandler(refreshTokenControllerV1),
 );
 
 export default v1AuthRouter;
