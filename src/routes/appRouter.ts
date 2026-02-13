@@ -1,15 +1,10 @@
 import { Router } from "express";
-import { v3Router } from "./v3/v3router.js";
 import v1AuthRouter from "./v1/auth.js";
+import v1VideoRouter from "./v1/video.js";
 
-
-export const appRouter = Router();
+const appRouter = Router();
 
 appRouter.use("/auth", v1AuthRouter);
+appRouter.use("/videos", v1VideoRouter);
 
-
-export const trpcRouter = {
-  v3 : v3Router
-};
-
-export type trpcRouter = typeof trpcRouter;
+export default appRouter;

@@ -1,12 +1,10 @@
 import express from "express";
 import cors from "cors";
-import * as trpcExpress from "@trpc/server/adapters/express";
-import { createContext } from "../trpc/context.js";
-import { appRouter, trpcRouter } from "@/routes/appRouter.js";
+import appRouter  from "@/routes/appRouter.js";
 import { requestTimer } from "@/utils/request-timer.js";
 import { errorHandler } from "@/middlewares/errorHandler.middleware.js";
 import OpenApiValidator from "express-openapi-validator";
-import path from "path/win32";
+import path from "path";
 
 const server = express();
 server.set("trust proxy", true);
@@ -50,15 +48,6 @@ server.get("/health", (req, res) => {
 
 // REST API routes v1
 server.use("/api/v1", appRouter);
-
-// tRPC API routes v3
-server.use(
-  "/api/v3",
-  trpcExpress.createExpressMiddleware({
-    router: trpcRouter.v3,
-    createContext: createContext,
-  }),
-);
 
 server.use(errorHandler);
 
