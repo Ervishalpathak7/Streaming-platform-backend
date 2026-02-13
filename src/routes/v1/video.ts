@@ -1,10 +1,10 @@
 import { Router } from "express";
 import {
-  completeUploadControllerV2,
-  getMyVideosControllerV2,
-  getSignedUrlControllerV2,
-  initUploadControllerV2,
-} from "@/controller/videoController";
+  completeUploadControllerV1,
+  getMyVideosControllerV1,
+  initUploadControllerV1,
+  getSignedUrlControllerV1,
+} from "@/controller/v1/videoController";
 import {
   getRouteLimiter,
   rateLimitMiddleware,
@@ -19,28 +19,28 @@ v1VideoRouter.get(
   "/my",
   authMiddleware,
   rateLimitMiddleware(getRouteLimiter, "GET"),
-  asyncHandler(getMyVideosControllerV2),
+  asyncHandler(getMyVideosControllerV1),
 );
 
 v1VideoRouter.post(
   "/init",
   authMiddleware,
   rateLimitMiddleware(uploadRouteLimiter, "UPLOAD"),
-  asyncHandler(initUploadControllerV2),
+  asyncHandler(initUploadControllerV1),
 );
 
 v1VideoRouter.get(
   "/signedurl/:videoId",
   authMiddleware,
   rateLimitMiddleware(uploadRouteLimiter, "UPLOAD"),
-  asyncHandler(getSignedUrlControllerV2),
+  asyncHandler(getSignedUrlControllerV1),
 );
 
 v1VideoRouter.post(
   "/complete/:videoId",
   authMiddleware,
   rateLimitMiddleware(uploadRouteLimiter, "UPLOAD"),
-  asyncHandler(completeUploadControllerV2),
+  asyncHandler(completeUploadControllerV1),
 );
 
 export default v1VideoRouter;
