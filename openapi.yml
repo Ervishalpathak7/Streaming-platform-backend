@@ -3,7 +3,7 @@ openapi: 3.0.3
 info:
   title: StreamKaro API
   description: API documentation for StreamKaro
-  version: 1.1.0
+  version: 2.0.0
 
 servers:
   - url: https://api.streamkaro.com/api/v1
@@ -12,9 +12,10 @@ servers:
 tags:
   - name: Auth
   - name: User
-  - name: Video
+  - name: Videos
 
 paths:
+
   /auth/login:
     post:
       tags: [Auth]
@@ -28,22 +29,23 @@ paths:
               $ref: '#/components/schemas/LoginRequest'
       responses:
         '200':
-          description: Login successful (refresh token set in httpOnly cookie)
+          description: Login successful
           headers:
-            Set-Cookie:
-              description: HttpOnly refresh token cookie
+            Authorization:
               schema:
                 type: string
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AuthSuccessResponse'
+                $ref: '#/components/schemas/MinimalSuccessResponse'
         '401':
-          description: Invalid credentials
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/ServerError'
 
   /auth/register:
     post:
@@ -58,108 +60,244 @@ paths:
               $ref: '#/components/schemas/RegisterRequest'
       responses:
         '201':
-          description: User registered successfully (refresh token set in httpOnly cookie)
+          description: User registered
           headers:
-            Set-Cookie:
-              description: HttpOnly refresh token cookie
+            Authorization:
               schema:
                 type: string
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AuthSuccessResponse'
+                $ref: '#/components/schemas/MinimalSuccessResponse'
+        '409':
+          description: Email already exists
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/ServerError'
 
   /auth/refresh:
     post:
       tags: [Auth]
       summary: Refresh access token
-      operationId: refreshAccessToken
-      description: Issues a new access token using refresh token from httpOnly cookie.
+      security:
+        - refreshTokenCookie: []
       responses:
         '200':
           description: Access token refreshed
+          headers:
+            Authorization:
+              schema:
+                type: string
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AuthSuccessResponse'
+                $ref: '#/components/schemas/MinimalSuccessResponse'
         '401':
-          description: Invalid or expired refresh token
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/ServerError'
 
-  /videos/upload/init:
+  /auth/logout:
     post:
-      tags: [Video]
-      summary: Initialize multipart video upload
-      operationId: initVideoUpload
+      tags: [Auth]
+      summary: Logout user and invalidate refresh token
       security:
         - bearerAuth: []
+      responses:
+        '200':
+          description: Logged out successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /user/profile:
+    get:
+      tags: [User]
+      summary: Get logged-in user profile
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Profile fetched
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfileResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /videos/init:
+    post:
+      tags: [Videos]
+      summary: Initialize video upload
+      description: >
+        Creates a video record in INITIATED state.
+        State transition: NONE → INITIATED.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/InitUploadRequest'
+              $ref: '#/components/schemas/InitVideoUploadRequest'
       responses:
-        '201':
+        '200':
           description: Upload initialized
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/InitUploadResponse'
+                $ref: '#/components/schemas/InitVideoUploadResponse'
+        '409':
+          description: Duplicate request or invalid state
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/RateLimited'
 
-  /videos/upload/presigned-urls:
-    post:
-      tags: [Video]
-      summary: Get presigned URLs for upload parts
-      operationId: getPresignedUrls
+  /videos/{videoId}:
+    get:
+      tags: [Videos]
+      summary: Get video metadata and status
       security:
         - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/PresignedUrlRequest'
+      parameters:
+        - name: videoId
+          in: path
+          required: true
+          schema:
+            type: string
       responses:
         '200':
-          description: Presigned URLs generated
+          description: Video details
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PresignedUrlResponse'
+                $ref: '#/components/schemas/VideoResponse'
+        '404':
+          description: Video not found
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/RateLimited'
 
-  /videos/upload/complete:
-    post:
-      tags: [Video]
-      summary: Complete multipart video upload
-      operationId: completeVideoUpload
+  /videos/signedurl/{videoId}:
+    get:
+      tags: [Videos]
+      summary: Get multipart upload signed URLs
+      description: >
+        Allowed only when video status = INITIATED.
+        State transition: INITIATED → UPLOADING.
       security:
         - bearerAuth: []
+      parameters:
+        - name: videoId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Signed URLs generated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetSignedUrlResponse'
+        '409':
+          description: Invalid video state (must be INITIATED)
+        '404':
+          description: Video not found
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+  /videos/complete/{videoId}:
+    post:
+      tags: [Videos]
+      summary: Complete multipart upload
+      description: >
+        Allowed only when video status = UPLOADING.
+        State transition: UPLOADING → PROCESSING.
+        Transcoding and final processing occur asynchronously.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: videoId
+          in: path
+          required: true
+          schema:
+            type: string
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CompleteUploadRequest'
+              $ref: '#/components/schemas/CompleteVideoUploadRequest'
       responses:
         '200':
           description: Upload completed and processing started
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SuccessResponse'
+                $ref: '#/components/schemas/MinimalSuccessResponse'
+        '409':
+          description: Invalid video state (must be UPLOADING)
+        '404':
+          description: Video not found
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/RateLimited'
 
 components:
+
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
+    refreshTokenCookie:
+      type: apiKey
+      in: cookie
+      name: refreshToken
+
+  responses:
+    Unauthorized:
+      description: Unauthorized
+    ValidationError:
+      description: Validation error
+    RateLimited:
+      description: Too many requests
+    ServerError:
+      description: Internal server error
 
   schemas:
+
+    MinimalSuccessResponse:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          example: success
+
     LoginRequest:
       type: object
       required: [email, password]
@@ -177,112 +315,131 @@ components:
       properties:
         name:
           type: string
+          minLength: 2
+          maxLength: 50
         email:
           type: string
           format: email
         password:
           type: string
           minLength: 6
+          maxLength: 20
 
-    AuthSuccessResponse:
+    UserProfileResponse:
       type: object
-      required: [status, accessToken]
       properties:
         status:
           type: string
-          example: success
-        accessToken:
-          type: string
-          description: Short-lived JWT access token
+        data:
+          type: object
+          properties:
+            id:
+              type: string
+            name:
+              type: string
+            email:
+              type: string
 
-    InitUploadRequest:
+    InitVideoUploadRequest:
       type: object
-      required: [filename, contentType, size]
+      required: [title, filename, filesize, filetype]
       properties:
+        title:
+          type: string
+        description:
+          type: string
         filename:
           type: string
-        contentType:
-          type: string
-          example: video/mp4
-        size:
+        filesize:
           type: integer
-          format: int64
-          example: 104857600
+          example: 1073741824
+          minimum: 1
+          maximum: 1073741824
+        filetype:
+          type: string
+          enum:
+            - video/mp4
+            - video/webm
+            - video/mkv
+            - video/mov
 
-    InitUploadResponse:
+    InitVideoUploadResponse:
       type: object
-      required: [videoId, uploadId]
+      required: [status, videoId]
       properties:
+        status:
+          type: string
         videoId:
           type: string
-        uploadId:
-          type: string
 
-    PresignedUrlRequest:
-      type: object
-      required: [videoId, uploadId, parts]
-      properties:
-        videoId:
-          type: string
-        uploadId:
-          type: string
-        parts:
-          type: array
-          items:
-            type: integer
-            example: 1
-
-    PresignedUrlResponse:
+    GetSignedUrlResponse:
       type: object
       properties:
-        urls:
-          type: array
-          items:
-            type: object
-            required: [partNumber, url]
-            properties:
-              partNumber:
-                type: integer
-              url:
-                type: string
-                format: uri
+        status:
+          type: string
+        data:
+          type: object
+          properties:
+            signedUrls:
+              type: array
+              items:
+                type: object
+                properties:
+                  partNumber:
+                    type: integer
+                  url:
+                    type: string
+                    format: uri
 
-    CompleteUploadRequest:
+    CompleteVideoUploadRequest:
       type: object
-      required: [videoId, uploadId, parts]
+      required: [parts]
       properties:
-        videoId:
-          type: string
-        uploadId:
-          type: string
         parts:
           type: array
           items:
             type: object
-            required: [partNumber, etag]
             properties:
               partNumber:
                 type: integer
-              etag:
+              eTag:
                 type: string
 
-    SuccessResponse:
+    VideoResponse:
+      description: >
+        Video lifecycle is event-driven.
+        INITIATED → UPLOADING → PROCESSING → READY/FAILED.
+        State transitions are controlled by backend events.
       type: object
-      required: [status, message]
+      required:
+        - id
+        - title
+        - status
+        - createdAt
       properties:
+        id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
         status:
           type: string
-          example: success
-        message:
+          enum:
+            - INITIATED
+            - UPLOADING
+            - PROCESSING
+            - READY
+            - FAILED
+        playbackUrl:
           type: string
-          example: Operation completed successfully
-
-    ErrorResponse:
-      type: object
-      required: [status, message]
-      properties:
-        status:
+          format: uri
+          nullable: true
+        thumbnailUrl:
           type: string
-          example: error
-        message:
+          format: uri
+          nullable: true
+        createdAt:
           type: string
+          format: date-time
