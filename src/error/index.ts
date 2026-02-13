@@ -69,3 +69,15 @@ export class UploadFailedError extends AppError {
     super("UploadFailedError", message);
   }
 }
+
+export class QueryLimitExceededError extends AppError {
+  constructor(message: string) {
+    super("QueryLimitExceededError", message);
+  }
+}
+
+export class invalidQueryParameterError extends AppError {
+  constructor(parameter: string, message: string) {
+    super("InvalidQueryParameterError", message, null, { parameter });
+  }
+}
