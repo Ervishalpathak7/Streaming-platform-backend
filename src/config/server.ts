@@ -6,6 +6,7 @@ import { errorHandler } from "@/middlewares/errorHandler.middleware.js";
 import OpenApiValidator from "express-openapi-validator";
 import path from "path";
 import { fileURLToPath } from "url";
+import logger from "@/lib/winston.js";
 
 
 const server = express();
@@ -15,11 +16,25 @@ server.use(express.urlencoded({ extended: true, limit: "16kb" }));
 
 server.use(requestTimer);
 
-const allowedOrigins = [
-  "https://streamkaro.app",
-  "http://localhost:5173",
-  "https://www.streamkaro.app",
-];
+const getAllowedOrigins = (): string[] => {
+  const origins = [
+    "https://streamkaro.app",
+    "http://localhost:5173",
+    "https://www.streamkaro.app",
+  ];
+  
+  // Allow additional origins from environment variable
+  if (process.env.ALLOWED_ORIGINS) {
+    const additionalOrigins = process.env.ALLOWED_ORIGINS.split(",").map((o) =>
+      o.trim(),
+    );
+    origins.push(...additionalOrigins);
+  }
+  
+  return origins;
+};
+
+const allowedOrigins = getAllowedOrigins();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -35,9 +50,21 @@ server.use(
 server.use(
   cors({
     origin: function (origin, callback) {
-      if (!origin) return callback(null, true);
-      if (allowedOrigins.includes(origin)) callback(null, true);
-      else callback(new Error("Not allowed by CORS"));
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) {
+        // In production, be more strict
+        if (process.env.NODE_ENV === "production") {
+          return callback(new Error("Not allowed by CORS"));
+        }
+        return callback(null, true);
+      }
+      
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        logger.warn("CORS blocked origin:", { origin, allowedOrigins });
+        callback(new Error("Not allowed by CORS"));
+      }
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
