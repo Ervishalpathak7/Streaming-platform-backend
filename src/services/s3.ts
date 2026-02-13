@@ -8,13 +8,18 @@ import {
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
+import { S3_BUCKET } from "@/config/s3.js";
+
 export const createMultipartUpload = async (
   key: string,
   contentType: string,
 ) => {
+  if (!S3_BUCKET) {
+    throw new Error("S3_BUCKET is not configured");
+  }
   try {
     const command = new CreateMultipartUploadCommand({
-      Bucket: process.env.S3_BUCKET,
+      Bucket: S3_BUCKET,
       Key: key,
       ContentType: contentType || "video/mp4",
     });
@@ -41,19 +46,26 @@ export const getUploadPartUrls = async (
   uploadId: string,
   totalParts: number,
 ) => {
+  if (!S3_BUCKET) {
+    throw new Error("S3_BUCKET is not configured");
+  }
   const urls: { partNumber: number; signedUrl: string }[] = [];
   try {
-    for (let partNumber = 1; partNumber <= totalParts; partNumber++) {
+    // Generate signed URLs in parallel for better performance
+    const urlPromises = Array.from({ length: totalParts }, async (_, index) => {
+      const partNumber = index + 1;
       const command = new UploadPartCommand({
-        Bucket: process.env.S3_BUCKET,
+        Bucket: S3_BUCKET,
         Key: S3key,
         UploadId: uploadId,
         PartNumber: partNumber,
       });
       const signedUrl = await getSignedUrl(s3, command, { expiresIn: 5 * 60 });
-      urls.push({ partNumber, signedUrl });
-    }
-    return urls;
+      return { partNumber, signedUrl };
+    });
+    
+    const results = await Promise.all(urlPromises);
+    return results.sort((a, b) => a.partNumber - b.partNumber);
   } catch (error) {
     logger.error("Error in getUploadPartUrls:", {
       S3key,
