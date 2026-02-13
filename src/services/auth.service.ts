@@ -1,5 +1,5 @@
 import User from "@/models/user.model";
-import { ConflictError, UnauthorizedError } from "@/error";
+import { AppError, ConflictError, UnauthorizedError } from "@/error";
 import { comparePassword, hashPassword } from "@/lib/bcrypt";
 import { MongoError } from "mongodb";
 import { InternalServerError } from "@/error/index.js";
@@ -10,6 +10,7 @@ import {
   verifyAccessToken,
 } from "@/lib/jwt";
 import RefreshToken from "@/models/refreshToken";
+import logger from "@/lib/winston";
 
 export const isTokenBlacklisted = async (token: string): Promise<boolean> => {
   const result = await redisClient.get(`bl:${token}`);
@@ -51,6 +52,12 @@ export const registerService = async (
     if (error instanceof MongoError && error.code === 11000) {
       throw new ConflictError("Email already in use");
     }
+    if (error instanceof AppError) throw error;
+    logger.error("Error in registerService:", {
+      name,
+      email,
+      error: error instanceof Error ? error.message : String(error),
+    });
     throw new InternalServerError(
       "Unexpected error during registration in registerService",
       error instanceof Error ? error : new Error(String(error)),
@@ -89,6 +96,11 @@ export const loginService = async (email: string, password: string) => {
       refreshToken: refreshTokenDoc.token,
     };
   } catch (error) {
+    if (error instanceof AppError) throw error;
+    logger.error("Error in loginService:", {
+      email,
+      error: error instanceof Error ? error.message : String(error),
+    });
     throw new InternalServerError(
       "Unexpected error during login in loginService",
       error instanceof Error ? error : new Error(String(error)),
