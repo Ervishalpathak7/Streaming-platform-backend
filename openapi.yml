@@ -63,6 +63,11 @@ paths:
           description: User registered
           headers:
             Authorization:
+              required: true
+              schema:
+                type: string
+            cookie:
+              required: true
               schema:
                 type: string
           content:
@@ -78,7 +83,7 @@ paths:
         '500':
           $ref: '#/components/responses/ServerError'
 
-  /auth/refresh:
+  /auth/refresh-token:
     post:
       tags: [Auth]
       summary: Refresh access token
@@ -113,7 +118,7 @@ paths:
           description: Logged out successfully
         '401':
           $ref: '#/components/responses/Unauthorized'
-
+  
   /user/profile:
     get:
       tags: [User]
