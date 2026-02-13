@@ -4,13 +4,21 @@ import logger from "@/lib/winston.js";
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
+type JwtPayload = {
+  userId: string;
+  role: string;
+  iat: number;
+  exp: number;
+};
+
 if (!JWT_SECRET) {
   throw new Error("JWT_SECRET is not defined in environment variables");
 }
 
 export const generateAccessToken = async (userId: string, role: string) => {
   try {
-    return jwt.sign({ userId: userId, role: role }, JWT_SECRET, {
+    const payload = { userId, role };
+    return jwt.sign(payload, JWT_SECRET, {
       algorithm: "HS256",
       expiresIn: "30MINUTES",
     });
@@ -32,7 +40,9 @@ export const generateAccessToken = async (userId: string, role: string) => {
 
 export const verifyAccessToken = (token: string) => {
   try {
-    return jwt.verify(token, JWT_SECRET, { algorithms: ["HS256"] });
+    return jwt.verify(token, JWT_SECRET, {
+      algorithms: ["HS256"],
+    }) as JwtPayload;
   } catch (error) {
     if (
       error instanceof jwt.TokenExpiredError ||
