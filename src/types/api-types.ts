@@ -48,7 +48,30 @@ export interface paths {
         get?: never;
         put?: never;
         /** Refresh access token */
-        post: operations["refreshAccessToken"];
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Access token refreshed */
+                200: {
+                    headers: {
+                        Authorization?: string;
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SuccessResponse"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                429: components["responses"]["RateLimited"];
+                500: components["responses"]["ServerError"];
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -64,8 +87,28 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Logout user */
-        post: operations["logoutUser"];
+        /** Logout user and invalidate refresh token */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Logged out successfully */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SuccessResponse"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -80,7 +123,29 @@ export interface paths {
             cookie?: never;
         };
         /** Get logged-in user profile */
-        get: operations["getProfile"];
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Profile fetched */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["UserProfileResponse"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                429: components["responses"]["RateLimited"];
+                500: components["responses"]["ServerError"];
+            };
+        };
         put?: never;
         post?: never;
         delete?: never;
@@ -98,8 +163,46 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Initialize video upload */
-        post: operations["initVideoUpload"];
+        /**
+         * Initialize video upload
+         * @description Creates a video record in INITIATED state. State transition: NONE → INITIATED.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "Idempotency-Key": string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["InitVideoUploadRequest"];
+                };
+            };
+            responses: {
+                /** @description Upload initialized */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["InitVideoUploadResponse"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                /** @description Duplicate request or invalid state */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                422: components["responses"]["ValidationError"];
+                429: components["responses"]["RateLimited"];
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -113,10 +216,158 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get video details */
-        get: operations["getVideo"];
+        /** Get video metadata and status */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    videoId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Video details */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["VideoResponse"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                /** @description Video not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                429: components["responses"]["RateLimited"];
+            };
+        };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/videos/signedurl/{videoId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get multipart upload signed URLs
+         * @description Allowed only when video status = INITIATED. State transition: INITIATED → UPLOADING.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    videoId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Signed URLs generated */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["GetSignedUrlResponse"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                /** @description Video not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Invalid video state (must be INITIATED) */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                429: components["responses"]["RateLimited"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/videos/complete/{videoId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Complete multipart upload
+         * @description Allowed only when video status = UPLOADING. State transition: UPLOADING → PROCESSING. Transcoding and final processing occur asynchronously.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    videoId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CompleteVideoUploadRequest"];
+                };
+            };
+            responses: {
+                /** @description Upload completed and processing started */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SuccessResponse"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                /** @description Video not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Invalid video state (must be UPLOADING) */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                429: components["responses"]["RateLimited"];
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -130,8 +381,34 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get paginated videos of logged-in user */
-        get: operations["getMyVideos"];
+        /** Get all videos of the logged-in user */
+        get: {
+            parameters: {
+                query?: {
+                    page?: number;
+                    limit?: number;
+                    status?: "INITIATED" | "UPLOADING" | "PROCESSING" | "READY" | "FAILED";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description List of user's videos */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["GetMyVideosResponse"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                429: components["responses"]["RateLimited"];
+                500: components["responses"]["ServerError"];
+            };
+        };
         put?: never;
         post?: never;
         delete?: never;
@@ -144,47 +421,65 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        SuccessResponse: {
-            /** @example true */
-            success: boolean;
-            data?: unknown;
-        };
-        ErrorResponse: {
-            /** @example false */
-            success: boolean;
-            message: string;
-            meta?: {
-                [key: string]: unknown;
-            } | null;
-        };
         /** @enum {string} */
         VideoStatus: "INITIATED" | "UPLOADING" | "PROCESSING" | "READY" | "FAILED";
-        LoginRequest: {
-            /** Format: email */
-            email: string;
-            password: string;
-        };
         RegisterRequest: {
             name: string;
             /** Format: email */
             email: string;
             password: string;
         };
-        UserProfile: {
-            id: string;
-            name: string;
+        LoginRequest: {
+            /** Format: email */
             email: string;
+            password: string;
+        };
+        SuccessResponse: {
+            /** @enum {string} */
+            status: "success";
+            message?: string;
+            data?: Record<string, never> | null;
+        };
+        UserProfileResponse: {
+            /** @enum {string} */
+            status: "success";
+            message: string;
+            data: {
+                id: string;
+                name: string;
+                email: string;
+            };
         };
         InitVideoUploadRequest: {
             title: string;
-            description?: string | null;
+            description?: string;
             filename: string;
+            /** @example 1073741824 */
             filesize: number;
             /** @enum {string} */
             filetype: "video/mp4" | "video/webm" | "video/mkv" | "video/mov";
         };
-        InitVideoUploadData: {
+        InitVideoUploadResponse: {
+            /** @enum {string} */
+            status: "success";
             videoId: string;
+        };
+        GetSignedUrlResponse: {
+            /** @enum {string} */
+            status: "success";
+            data: {
+                signedUrls: {
+                    partNumber: number;
+                    /** Format: uri */
+                    url: string;
+                }[];
+            };
+        };
+        CompleteVideoUploadRequest: {
+            parts: {
+                partNumber: number;
+                eTag: string;
+            }[];
         };
         VideoResponse: {
             id: string;
@@ -198,10 +493,23 @@ export interface components {
             /** Format: date-time */
             createdAt: string;
         };
-        PaginatedVideos: {
-            videos: components["schemas"]["VideoResponse"][];
-            totalPages: number;
-            currentPage: number;
+        GetMyVideosResponse: {
+            /** @enum {string} */
+            status: "success";
+            message: string;
+            data: {
+                videos?: components["schemas"]["VideoResponse"][];
+                processingVideos?: components["schemas"]["VideoResponse"][];
+                readyVideos?: components["schemas"]["VideoResponse"][];
+                totalPages?: number;
+                currentPage?: number;
+            };
+        };
+        ErrorResponse: {
+            /** @enum {string} */
+            status: "error";
+            message: string;
+            meta?: Record<string, never> | null;
         };
     };
     responses: {
@@ -241,32 +549,8 @@ export interface components {
                 "application/json": components["schemas"]["ErrorResponse"];
             };
         };
-        /** @description Conflict */
-        Conflict: {
-            headers: {
-                [name: string]: unknown;
-            };
-            content: {
-                "application/json": components["schemas"]["ErrorResponse"];
-            };
-        };
-        /** @description Resource not found */
-        NotFound: {
-            headers: {
-                [name: string]: unknown;
-            };
-            content: {
-                "application/json": components["schemas"]["ErrorResponse"];
-            };
-        };
     };
-    parameters: {
-        VideoId: string;
-        IdempotencyKey: string;
-        Page: number;
-        Limit: number;
-        VideoStatusFilter: components["schemas"]["VideoStatus"];
-    };
+    parameters: never;
     requestBodies: never;
     headers: never;
     pathItems: never;
@@ -290,6 +574,7 @@ export interface operations {
             200: {
                 headers: {
                     Authorization?: string;
+                    "Set-Cookie": string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -318,173 +603,22 @@ export interface operations {
             /** @description User registered */
             201: {
                 headers: {
-                    Authorization?: string;
+                    Authorization: string;
+                    "Set-Cookie": string;
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": components["schemas"]["SuccessResponse"];
                 };
             };
-            409: components["responses"]["Conflict"];
+            /** @description Email already exists */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             422: components["responses"]["ValidationError"];
-            429: components["responses"]["RateLimited"];
-            500: components["responses"]["ServerError"];
-        };
-    };
-    refreshAccessToken: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Token refreshed */
-            200: {
-                headers: {
-                    Authorization?: string;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SuccessResponse"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            429: components["responses"]["RateLimited"];
-            500: components["responses"]["ServerError"];
-        };
-    };
-    logoutUser: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Logged out */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SuccessResponse"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-        };
-    };
-    getProfile: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Profile fetched */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SuccessResponse"] & {
-                        data?: components["schemas"]["UserProfile"];
-                    };
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            429: components["responses"]["RateLimited"];
-            500: components["responses"]["ServerError"];
-        };
-    };
-    initVideoUpload: {
-        parameters: {
-            query?: never;
-            header: {
-                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["InitVideoUploadRequest"];
-            };
-        };
-        responses: {
-            /** @description Upload initialized */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SuccessResponse"] & {
-                        data?: components["schemas"]["InitVideoUploadData"];
-                    };
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            409: components["responses"]["Conflict"];
-            422: components["responses"]["ValidationError"];
-            429: components["responses"]["RateLimited"];
-        };
-    };
-    getVideo: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                videoId: components["parameters"]["VideoId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Video details */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SuccessResponse"] & {
-                        data?: components["schemas"]["VideoResponse"];
-                    };
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            404: components["responses"]["NotFound"];
-            429: components["responses"]["RateLimited"];
-        };
-    };
-    getMyVideos: {
-        parameters: {
-            query?: {
-                page?: components["parameters"]["Page"];
-                limit?: components["parameters"]["Limit"];
-                status?: components["parameters"]["VideoStatusFilter"];
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Paginated videos */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SuccessResponse"] & {
-                        data?: components["schemas"]["PaginatedVideos"];
-                    };
-                };
-            };
-            401: components["responses"]["Unauthorized"];
             429: components["responses"]["RateLimited"];
             500: components["responses"]["ServerError"];
         };
