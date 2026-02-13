@@ -1,4 +1,4 @@
-import { AppError } from "@/error/index.js";
+import { AppError, normalizeError } from "@/error/index.js";
 import logger from "@/lib/winston.js";
 import mongoose from "mongoose";
 
@@ -28,11 +28,10 @@ try {
     error,
   });
 
-  throw new AppError(
-    "Database connection failed",
-    "DB_CONNECTION_FAILED",
-    error instanceof Error ? error : new Error(String(error)),
-  );
+  throw new AppError("Database connection failed", 500, {
+    isOperational: false,
+    originalError: normalizeError(error),
+  });
 }
 
 export const disconnectDb = async () => {
@@ -46,10 +45,9 @@ export const disconnectDb = async () => {
       code: "DB_DISCONNECTION_FAILED",
       error,
     });
-    throw new AppError(
-      "Database connection failed",
-      "DB_CONNECTION_FAILED",
-      error instanceof Error ? error : new Error(String(error)),
-    );
+    throw new AppError("Database disconnection failed", 500, {
+      isOperational: false,
+      originalError: normalizeError(error),
+    });
   }
 };
