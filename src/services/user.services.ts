@@ -2,7 +2,9 @@ import {
   ConflictError,
   InternalServerError,
   NotFoundError,
-} from "@/error/index.js";
+} from "@/error/errors.js";
+import { normalizeError } from "@/error/index.js";
+import logger from "@/lib/winston.js";
 import User from "@/models/user.model.js";
 import type { User as UserType } from "@/models/user.model.js";
 import { MongoServerError } from "mongodb";
@@ -16,9 +18,13 @@ export const findUserById = async (id: string) => {
     return user;
   } catch (error) {
     if (error instanceof NotFoundError) throw error;
+    logger.error("Error in findUserById:", {
+      id,
+      error: normalizeError(error),
+    });
     throw new InternalServerError(
       "Failed to find user by id",
-      error instanceof Error ? error : new Error(String(error)),
+      normalizeError(error),
     );
   }
 };
@@ -29,10 +35,14 @@ export const findUserByEmail = async (email: string) => {
     if (!user) throw new NotFoundError("User not found");
     return user;
   } catch (error) {
+    logger.error("Error in findUserByEmail:", {
+      email,
+      error: normalizeError(error),
+    });
     if (error instanceof NotFoundError) throw error;
     throw new InternalServerError(
       "Failed to find user by email",
-      error instanceof Error ? error : new Error(String(error)),
+      normalizeError(error),
     );
   }
 };
@@ -46,13 +56,17 @@ export const createUser = async (user: UserType) => {
     });
     return newUser;
   } catch (error) {
-    if (error instanceof MongoServerError)
-      if (error.code === 11000) throw new ConflictError("Email already exists");
+    if (error instanceof MongoServerError && error.code === 11000)
+      throw new ConflictError("Email already exists");
+    logger.error("Error in createUser:", {
+      user,
+      error: normalizeError(error),
+    });
     throw new InternalServerError(
       "Failed to create user",
-      error instanceof Error ? error : new Error(String(error)),
+      normalizeError(error),
     );
-  }
+  }``
 };
 
 export const updateUser = async (id: string, user: Partial<UserType>) => {
@@ -66,7 +80,7 @@ export const updateUser = async (id: string, user: Partial<UserType>) => {
     if (error instanceof NotFoundError) throw error;
     throw new InternalServerError(
       "Failed to update user",
-      error instanceof Error ? error : new Error(String(error)),
+      normalizeError(error),
     );
   }
 };
@@ -82,7 +96,7 @@ export const deleteUser = async (id: string) => {
     if (error instanceof NotFoundError) throw error;
     throw new InternalServerError(
       "Failed to delete user",
-      error instanceof Error ? error : new Error(String(error)),
+      normalizeError(error),
     );
   }
 };

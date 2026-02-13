@@ -1,5 +1,6 @@
 import s3 from "@/config/s3.js";
-import { InternalServerError } from "@/error";
+import { InternalServerError } from "@/error/errors.js";
+import { normalizeError } from "@/error/index.js";
 import logger from "@/lib/winston.js";
 import {
   CreateMultipartUploadCommand,
@@ -23,10 +24,14 @@ export const createMultipartUpload = async (
       S3key: response.Key,
     };
   } catch (error) {
-    logger.error("Error in createMultipartUpload:", error);
+    logger.error("Error in createMultipartUpload:", {
+      key,
+      contentType,
+      error: normalizeError(error),
+    });
     throw new InternalServerError(
       "Error creating multipart upload",
-      error instanceof Error ? error : new Error(String(error)),
+      normalizeError(error),
     );
   }
 };
@@ -54,11 +59,11 @@ export const getUploadPartUrls = async (
       S3key,
       uploadId,
       totalParts,
-      error,
+      error: normalizeError(error),
     });
     throw new InternalServerError(
       "Error generating signed URLs for upload parts",
-      error instanceof Error ? error : new Error(String(error)),
+      normalizeError(error),
     );
   }
 };

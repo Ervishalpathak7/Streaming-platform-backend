@@ -1,16 +1,20 @@
-import User from "@/models/user.model";
-import { AppError, ConflictError, UnauthorizedError } from "@/error";
-import { comparePassword, hashPassword } from "@/lib/bcrypt";
 import { MongoError } from "mongodb";
-import { InternalServerError } from "@/error/index.js";
-import redisClient from "@/config/redis";
+import logger from "@/lib/winston.js";
+import User from "@/models/user.model.js";
+import redisClient from "@/config/redis.js";
+import RefreshToken from "@/models/refreshToken.js";
+import { AppError, normalizeError } from "@/error/index.js";
+import { comparePassword, hashPassword } from "@/lib/bcrypt.js";
+import {
+  ConflictError,
+  InternalServerError,
+  UnauthorizedError,
+} from "@/error/errors.js";
 import {
   generateAccessToken,
   generateRefreshToken,
   verifyAccessToken,
-} from "@/lib/jwt";
-import RefreshToken from "@/models/refreshToken";
-import logger from "@/lib/winston";
+} from "@/lib/jwt.js";
 
 export const isTokenBlacklisted = async (token: string): Promise<boolean> => {
   const result = await redisClient.get(`bl:${token}`);
@@ -56,11 +60,11 @@ export const registerService = async (
     logger.error("Error in registerService:", {
       name,
       email,
-      error: error instanceof Error ? error.message : String(error),
+      error: normalizeError(error),
     });
     throw new InternalServerError(
       "Unexpected error during registration in registerService",
-      error instanceof Error ? error : new Error(String(error)),
+      normalizeError(error),
     );
   }
 };
@@ -103,7 +107,7 @@ export const loginService = async (email: string, password: string) => {
     });
     throw new InternalServerError(
       "Unexpected error during login in loginService",
-      error instanceof Error ? error : new Error(String(error)),
+      normalizeError(error),
     );
   }
 };
@@ -124,22 +128,33 @@ export const logoutService = async (
 };
 
 export const refreshTokenService = async (refreshToken: string) => {
-  const existingToken = await RefreshToken.findOne({ token: refreshToken });
-  if (!existingToken) throw new UnauthorizedError("Invalid refresh token");
+  try {
+    const existingToken = await RefreshToken.findOne({ token: refreshToken });
+    if (!existingToken) throw new UnauthorizedError("Invalid refresh token");
 
-  if (existingToken.expiresAt < new Date()) {
-    await RefreshToken.deleteOne({ token: refreshToken });
-    throw new UnauthorizedError("Refresh token expired");
+    if (existingToken.expiresAt < new Date()) {
+      await RefreshToken.deleteOne({ token: refreshToken });
+      throw new UnauthorizedError("Refresh token expired");
+    }
+    const user = await User.findById(existingToken.userId);
+    if (!user) {
+      await RefreshToken.deleteOne({ token: refreshToken });
+      throw new UnauthorizedError("User not found");
+    }
+    const newAccessToken = await generateAccessToken(
+      user._id.toString(),
+      user.role,
+    );
+    return newAccessToken;
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+    logger.error("Error in refreshTokenService:", {
+      refreshToken,
+      error: normalizeError(error),
+    });
+    throw new InternalServerError(
+      "Unexpected error during token refresh in refreshTokenService",
+      normalizeError(error),
+    );
   }
-  const user = await User.findById(existingToken.userId);
-  if (!user) {
-    await RefreshToken.deleteOne({ token: refreshToken });
-    throw new UnauthorizedError("User not found");
-  }
-  const newAccessToken = await generateAccessToken(
-    user._id.toString(),
-    user.role,
-  );
-
-  return newAccessToken;
 };
