@@ -1,4 +1,5 @@
 import s3 from "@/config/s3.js";
+import { InternalServerError } from "@/error";
 import logger from "@/lib/winston.js";
 import {
   CreateMultipartUploadCommand,
@@ -23,7 +24,10 @@ export const createMultipartUpload = async (
     };
   } catch (error) {
     logger.error("Error in createMultipartUpload:", error);
-    throw error;
+    throw new InternalServerError(
+      "Error creating multipart upload",
+      error instanceof Error ? error : new Error(String(error)),
+    );
   }
 };
 
@@ -44,11 +48,17 @@ export const getUploadPartUrls = async (
       const signedUrl = await getSignedUrl(s3, command, { expiresIn: 5 * 60 });
       urls.push({ partNumber, signedUrl });
     }
-
     return urls;
   } catch (error) {
-    logger.error("Error in getUploadPartUrls:", error);
-    throw error;
+    logger.error("Error in getUploadPartUrls:", {
+      S3key,
+      uploadId,
+      totalParts,
+      error,
+    });
+    throw new InternalServerError(
+      "Error generating signed URLs for upload parts",
+      error instanceof Error ? error : new Error(String(error)),
+    );
   }
 };
-
