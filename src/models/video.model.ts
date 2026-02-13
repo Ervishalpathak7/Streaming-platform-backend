@@ -31,7 +31,7 @@ export type VideoType = z.infer<typeof videoSchemaType>;
 
 type VideoStatus = "INITIATED" | "UPLOADED" | "PROCESSING" | "READY" | "FAILED";
 
-const VideoSchema = new Schema<Video>(
+const VideoSchema = new Schema<VideoType>(
   {
     owner: {
       type: Types.ObjectId,
@@ -116,5 +116,5 @@ VideoSchema.index({ owner: 1, createdAt: -1 });
 // Processing workers / monitoring
 VideoSchema.index({ status: 1, updatedAt: -1 });
 
-const Video = model<Video>("Videos", VideoSchema);
+const Video = model<VideoType>("Videos", VideoSchema);
 export default Video;
