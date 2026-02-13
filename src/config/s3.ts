@@ -5,10 +5,13 @@ export const S3_CHUNK_SIZE = 10 * 1024 * 1024; // 10MB
 if (
   !process.env.S3_REGION ||
   !process.env.S3_ACCESS_KEY_ID ||
-  !process.env.S3_SECRET_ACCESS_KEY
+  !process.env.S3_SECRET_ACCESS_KEY ||
+  !process.env.S3_BUCKET
 ) {
-  throw new Error("Missing S3 configuration in environment variables");
+  throw new Error("Missing S3 configuration in environment variables. Required: S3_REGION, S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY, S3_BUCKET");
 }
+
+export const S3_BUCKET = process.env.S3_BUCKET;
 
 // S3 configuration
 const s3 = new S3Client({
