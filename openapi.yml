@@ -2,8 +2,8 @@ openapi: 3.0.3
 
 info:
   title: StreamKaro API
+  description: API documentation for StreamKaro
   version: 2.0.0
-  description: API Documentation for StreamKaro.
 
 servers:
   - url: https://api.streamkaro.com/api/v1
@@ -15,12 +15,11 @@ tags:
   - name: Videos
 
 paths:
-
   /auth/login:
     post:
       tags: [Auth]
-      operationId: loginUser
       summary: User login
+      operationId: loginUser
       requestBody:
         required: true
         content:
@@ -32,6 +31,10 @@ paths:
           description: Login successful
           headers:
             Authorization:
+              schema:
+                type: string
+            Set-Cookie:
+              required: true
               schema:
                 type: string
           content:
@@ -50,8 +53,8 @@ paths:
   /auth/register:
     post:
       tags: [Auth]
-      operationId: registerUser
       summary: User registration
+      operationId: registerUser
       requestBody:
         required: true
         content:
@@ -63,14 +66,20 @@ paths:
           description: User registered
           headers:
             Authorization:
+              required: true
               schema:
                 type: string
+            Set-Cookie:
+              required: true
+              schema:
+                type: string
+
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/SuccessResponse"
         "409":
-          $ref: "#/components/responses/Conflict"
+          description: Email already exists
         "422":
           $ref: "#/components/responses/ValidationError"
         "429":
@@ -81,13 +90,12 @@ paths:
   /auth/refresh-token:
     post:
       tags: [Auth]
-      operationId: refreshAccessToken
       summary: Refresh access token
       security:
         - refreshTokenCookie: []
       responses:
         "200":
-          description: Token refreshed
+          description: Access token refreshed
           headers:
             Authorization:
               schema:
@@ -106,13 +114,12 @@ paths:
   /auth/logout:
     post:
       tags: [Auth]
-      operationId: logoutUser
-      summary: Logout user
+      summary: Logout user and invalidate refresh token
       security:
         - bearerAuth: []
       responses:
         "200":
-          description: Logged out
+          description: Logged out successfully
           content:
             application/json:
               schema:
@@ -123,7 +130,6 @@ paths:
   /user/profile:
     get:
       tags: [User]
-      operationId: getProfile
       summary: Get logged-in user profile
       security:
         - bearerAuth: []
@@ -133,12 +139,7 @@ paths:
           content:
             application/json:
               schema:
-                allOf:
-                  - $ref: "#/components/schemas/SuccessResponse"
-                  - type: object
-                    properties:
-                      data:
-                        $ref: "#/components/schemas/UserProfile"
+                $ref: "#/components/schemas/UserProfileResponse"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "429":
@@ -149,12 +150,18 @@ paths:
   /videos/init:
     post:
       tags: [Videos]
-      operationId: initVideoUpload
       summary: Initialize video upload
+      description: >
+        Creates a video record in INITIATED state.
+        State transition: NONE → INITIATED.
       security:
         - bearerAuth: []
       parameters:
-        - $ref: "#/components/parameters/IdempotencyKey"
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
       requestBody:
         required: true
         content:
@@ -167,14 +174,9 @@ paths:
           content:
             application/json:
               schema:
-                allOf:
-                  - $ref: "#/components/schemas/SuccessResponse"
-                  - type: object
-                    properties:
-                      data:
-                        $ref: "#/components/schemas/InitVideoUploadData"
+                $ref: "#/components/schemas/InitVideoUploadResponse"
         "409":
-          $ref: "#/components/responses/Conflict"
+          description: Duplicate request or invalid state
         "422":
           $ref: "#/components/responses/ValidationError"
         "401":
@@ -185,26 +187,93 @@ paths:
   /videos/{videoId}:
     get:
       tags: [Videos]
-      operationId: getVideo
-      summary: Get video details
+      summary: Get video metadata and status
       security:
         - bearerAuth: []
       parameters:
-        - $ref: "#/components/parameters/VideoId"
+        - name: videoId
+          in: path
+          required: true
+          schema:
+            type: string
       responses:
         "200":
           description: Video details
           content:
             application/json:
               schema:
-                allOf:
-                  - $ref: "#/components/schemas/SuccessResponse"
-                  - type: object
-                    properties:
-                      data:
-                        $ref: "#/components/schemas/VideoResponse"
+                $ref: "#/components/schemas/VideoResponse"
         "404":
-          $ref: "#/components/responses/NotFound"
+          description: Video not found
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  /videos/signedurl/{videoId}:
+    get:
+      tags: [Videos]
+      summary: Get multipart upload signed URLs
+      description: >
+        Allowed only when video status = INITIATED.
+        State transition: INITIATED → UPLOADING.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: videoId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Signed URLs generated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetSignedUrlResponse"
+        "409":
+          description: Invalid video state (must be INITIATED)
+        "404":
+          description: Video not found
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  /videos/complete/{videoId}:
+    post:
+      tags: [Videos]
+      summary: Complete multipart upload
+      description: >
+        Allowed only when video status = UPLOADING.
+        State transition: UPLOADING → PROCESSING.
+        Transcoding and final processing occur asynchronously.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: videoId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CompleteVideoUploadRequest"
+      responses:
+        "200":
+          description: Upload completed and processing started
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "409":
+          description: Invalid video state (must be UPLOADING)
+        "404":
+          description: Video not found
         "401":
           $ref: "#/components/responses/Unauthorized"
         "429":
@@ -213,26 +282,38 @@ paths:
   /videos/mine:
     get:
       tags: [Videos]
-      operationId: getMyVideos
-      summary: Get paginated videos of logged-in user
+      summary: Get all videos of the logged-in user
       security:
         - bearerAuth: []
       parameters:
-        - $ref: "#/components/parameters/Page"
-        - $ref: "#/components/parameters/Limit"
-        - $ref: "#/components/parameters/VideoStatusFilter"
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum:
+              - INITIATED
+              - UPLOADING
+              - PROCESSING
+              - READY
+              - FAILED
       responses:
         "200":
-          description: Paginated videos
+          description: List of user's videos
           content:
             application/json:
               schema:
-                allOf:
-                  - $ref: "#/components/schemas/SuccessResponse"
-                  - type: object
-                    properties:
-                      data:
-                        $ref: "#/components/schemas/PaginatedVideos"
+                $ref: "#/components/schemas/GetMyVideosResponse"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "429":
@@ -241,7 +322,6 @@ paths:
           $ref: "#/components/responses/ServerError"
 
 components:
-
   securitySchemes:
     bearerAuth:
       type: http
@@ -251,44 +331,6 @@ components:
       type: apiKey
       in: cookie
       name: refreshToken
-
-  parameters:
-    VideoId:
-      name: videoId
-      in: path
-      required: true
-      schema:
-        type: string
-
-    IdempotencyKey:
-      name: Idempotency-Key
-      in: header
-      required: true
-      schema:
-        type: string
-
-    Page:
-      name: page
-      in: query
-      schema:
-        type: integer
-        minimum: 1
-        default: 1
-
-    Limit:
-      name: limit
-      in: query
-      schema:
-        type: integer
-        minimum: 1
-        maximum: 100
-        default: 10
-
-    VideoStatusFilter:
-      name: status
-      in: query
-      schema:
-        $ref: "#/components/schemas/VideoStatus"
 
   responses:
     Unauthorized:
@@ -311,7 +353,6 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/ErrorResponse"
-
     ServerError:
       description: Internal server error
       content:
@@ -319,51 +360,7 @@ components:
           schema:
             $ref: "#/components/schemas/ErrorResponse"
 
-    Conflict:
-      description: Conflict
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/ErrorResponse"
-
-    NotFound:
-      description: Resource not found
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/ErrorResponse"
-
   schemas:
-
-    SuccessResponse:
-      type: object
-      additionalProperties: false
-      required:
-        - success
-      properties:
-        success:
-          type: boolean
-          example: true
-        data:
-          nullable: true
-
-    ErrorResponse:
-      type: object
-      additionalProperties: false
-      required:
-        - success
-        - message
-      properties:
-        success:
-          type: boolean
-          example: false
-        message:
-          type: string
-        meta:
-          type: object
-          additionalProperties: true
-          nullable: true
-
     VideoStatus:
       type: string
       enum:
@@ -373,27 +370,10 @@ components:
         - READY
         - FAILED
 
-    LoginRequest:
-      type: object
-      additionalProperties: false
-      required:
-        - email
-        - password
-      properties:
-        email:
-          type: string
-          format: email
-        password:
-          type: string
-          minLength: 6
-
     RegisterRequest:
       type: object
       additionalProperties: false
-      required:
-        - name
-        - email
-        - password
+      required: [name, email, password]
       properties:
         name:
           type: string
@@ -405,41 +385,72 @@ components:
         password:
           type: string
           minLength: 6
-          maxLength: 100
+          maxLength: 20
 
-    UserProfile:
+    LoginRequest:
       type: object
       additionalProperties: false
-      required:
-        - id
-        - name
-        - email
+      required: [email, password]
       properties:
-        id:
-          type: string
-        name:
-          type: string
         email:
           type: string
+          format: email
+        password:
+          type: string
+          maxLength: 20
+          minLength: 6
+
+    SuccessResponse:
+      additionalProperties: false
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [success]
+        message:
+          type: string
+        data:
+          type: object
+          nullable: true
+
+    UserProfileResponse:
+      additionalProperties: false
+      type: object
+      required: [status, message, data]
+      properties:
+        status:
+          type: string
+          enum: [success]
+
+        message:
+          type: string
+        data:
+          type: object
+          required: [id , name , email]
+          additionalProperties: false
+          properties:
+            id:
+              type: string
+            name:
+              type: string
+            email:
+              type: string
 
     InitVideoUploadRequest:
-      type: object
       additionalProperties: false
-      required:
-        - title
-        - filename
-        - filesize
-        - filetype
+      type: object
+      required: [title, filename, filesize, filetype]
       properties:
         title:
           type: string
         description:
           type: string
-          nullable: true
         filename:
           type: string
         filesize:
           type: integer
+          example: 1073741824
           minimum: 1
           maximum: 1073741824
         filetype:
@@ -450,23 +461,64 @@ components:
             - video/mkv
             - video/mov
 
-    InitVideoUploadData:
-      type: object
+    InitVideoUploadResponse:
       additionalProperties: false
-      required:
-        - videoId
+      type: object
+      required: [status, videoId]
       properties:
+        status:
+          type: string
+          enum: [success]
         videoId:
           type: string
+
+    GetSignedUrlResponse:
+      type: object
+      additionalProperties: false
+      required: [status, data]
+      properties:
+        status:
+          type: string
+          enum: [success]
+        data:
+          type: object
+          additionalProperties: false
+          required: [signedUrls]
+          properties:
+            signedUrls:
+              type: array
+              items:
+                type: object
+                additionalProperties: false
+                required: [partNumber , url]
+                properties:
+                  partNumber:
+                    type: integer
+                  url:
+                    type: string
+                    format: uri
+
+    CompleteVideoUploadRequest:
+      additionalProperties: false
+      type: object
+      required: [parts]
+      properties:
+        parts:
+          type: array
+          items:
+            type: object
+            required: [partNumber, eTag]
+            additionalProperties: false
+            properties:
+              partNumber:
+                type: integer
+              eTag:
+                type: string
 
     VideoResponse:
       type: object
       additionalProperties: false
-      required:
-        - id
-        - title
-        - status
-        - createdAt
+      required: [id, title, status, createdAt]
       properties:
         id:
           type: string
@@ -489,19 +541,47 @@ components:
           type: string
           format: date-time
 
-    PaginatedVideos:
+    GetMyVideosResponse:
       type: object
       additionalProperties: false
-      required:
-        - videos
-        - totalPages
-        - currentPage
+      required: [status , message , data]
       properties:
-        videos:
-          type: array
-          items:
-            $ref: "#/components/schemas/VideoResponse"
-        totalPages:
-          type: integer
-        currentPage:
-          type: integer
+        status:
+          type: string
+          enum: [success]
+        message : 
+          type: string
+        data:
+          type: object
+          additionalProperties: false
+          properties:
+            videos:
+              type: array
+              items:
+                $ref: "#/components/schemas/VideoResponse"
+            processingVideos:
+              type: array
+              items:
+                $ref: "#/components/schemas/VideoResponse"
+            readyVideos:
+              type: array
+              items:
+                $ref: "#/components/schemas/VideoResponse"
+            totalPages:
+              type: integer
+            currentPage:
+              type: integer
+
+    ErrorResponse:
+      type: object
+      additionalProperties: false
+      required: [status, message]
+      properties:
+        status:
+          type: string
+          enum: [error]
+        message:
+          type: string
+        meta:
+          type: object
+          nullable: true
