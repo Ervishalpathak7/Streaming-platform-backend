@@ -42,3 +42,21 @@ export class InternalServerError extends AppError {
     super(message, 500, options);
   }
 }
+
+export class UploadFailedError extends AppError {
+  constructor(message = "Upload failed") {
+    super(message, 400);
+  }
+}
+
+export class QueryLimitExceededError extends AppError {
+  constructor(message = "Query limit exceeded") {
+    super(message, 400);
+  }
+}
+
+export class invalidQueryParameterError extends AppError {
+  constructor(parameter: string, message: string) {
+    super(message, 400, { meta: { parameter } });
+  }
+}

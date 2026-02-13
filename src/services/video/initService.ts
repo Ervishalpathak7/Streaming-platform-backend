@@ -1,9 +1,10 @@
-import { S3_CHUNK_SIZE } from "@/config/s3";
-import type { inItUploadRequest } from "@/controller/v1/videoController";
-import Video from "@/models/video.model";
-import { createMultipartUpload } from "../s3";
-import { AppError, InternalServerError } from "@/error";
-import logger from "@/lib/winston";
+import { S3_CHUNK_SIZE } from "@/config/s3.js";
+import type { inItUploadRequest } from "@/controller/v1/videoController.js";
+import Video from "@/models/video.model.js";
+import {  InternalServerError } from "@/error/errors.js";
+import logger from "@/lib/winston.js";
+import { createMultipartUpload } from "../s3.js";
+import { AppError } from "@/error/index.js";
 
 export const videoInItService = async (
   videoMetaData: inItUploadRequest,

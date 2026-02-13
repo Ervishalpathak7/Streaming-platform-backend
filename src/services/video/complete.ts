@@ -1,13 +1,13 @@
-import s3 from "@/config/s3";
+import s3 from "@/config/s3.js";
 import {
-  AppError,
   InternalServerError,
   NotFoundError,
   UploadFailedError,
   ValidationError,
-} from "@/error";
-import logger from "@/lib/winston";
-import Video from "@/models/video.model";
+} from "@/error/errors.js";
+import { AppError, normalizeError } from "@/error/index.js";
+import logger from "@/lib/winston.js";
+import Video from "@/models/video.model.js";
 import {
   CompleteMultipartUploadCommand,
   S3ServiceException,
@@ -101,21 +101,16 @@ export const completeUploadService = async (
           error,
         );
       }
-
-      throw new InternalServerError(
-        "S3 error occurred while completing upload",
-        error,
-      );
     }
 
     logger.error("Error in completeUploadService:", {
       videoId: videoId,
       userId: userId,
-      error: error instanceof Error ? error : new Error(String(error)),
+      error: normalizeError(error),
     });
     throw new InternalServerError(
       "Could not complete upload",
-      error instanceof Error ? error : new Error(String(error)),
+      normalizeError(error),
     );
   }
 };

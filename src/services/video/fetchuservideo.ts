@@ -2,8 +2,10 @@ import {
   InternalServerError,
   invalidQueryParameterError,
   QueryLimitExceededError,
-} from "@/error";
-import Video, { type VideoType } from "@/models/video.model";
+} from "@/error/errors.js";
+import { normalizeError } from "@/error/index.js";
+import logger from "@/lib/winston.js";
+import Video, { type VideoType } from "@/models/video.model.js";
 
 export const fetchUserVideos = async (
   userId: string,
@@ -41,9 +43,16 @@ export const fetchUserVideos = async (
 
     return { videos, totalPages, processingVideos, readyVideos };
   } catch (error) {
+    logger.error("Error in fetchUserVideos:", {
+      userId: userId,
+      page: page,
+      limit: limit,
+      status: status,
+      error: normalizeError(error),
+    });
     throw new InternalServerError(
       "Failed to fetch videos",
-      error instanceof Error ? error : new Error(String(error)),
+      normalizeError(error),
     );
   }
 };

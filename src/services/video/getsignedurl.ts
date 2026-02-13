@@ -1,12 +1,12 @@
-import Video from "@/models/video.model";
-import logger from "@/lib/winston";
-import { getUploadPartUrls } from "@/services/s3";
+import Video from "@/models/video.model.js";
+import logger from "@/lib/winston.js";
+import { getUploadPartUrls } from "@/services/s3.js";
 import {
-  AppError,
   InternalServerError,
   NotFoundError,
   UploadFailedError,
-} from "@/error";
+} from "@/error/errors.js";
+import { AppError, normalizeError } from "@/error/index.js";
 
 export const signedUrlService = async (videoId: string, userId: string) => {
   try {
@@ -34,11 +34,11 @@ export const signedUrlService = async (videoId: string, userId: string) => {
     logger.error("Error in signedUrlService:", {
       videoId: videoId,
       userId: userId,
-      error: error instanceof Error ? error.message : String(error),
+      error: normalizeError(error),
     });
     throw new InternalServerError(
       "Error in Signed URL Service",
-      error instanceof Error ? error : new Error(String(error)),
+      normalizeError(error),
     );
   }
 };
