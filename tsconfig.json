@@ -7,11 +7,12 @@
     "paths": {
       "@/*": ["./src/*"]
     },
+    "moduleResolution": "bundler",
 
     // Environment Settings
     // See also https://aka.ms/tsconfig/module
-    "module": "nodenext",
-    "target": "esnext",
+    "module": "preserve",
+    "target": "ES2022",
     // For nodejs:
     "lib": ["esnext"],
     "types": ["node"],
