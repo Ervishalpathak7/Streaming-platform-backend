@@ -14,7 +14,9 @@ import {
   generateAccessToken,
   generateRefreshToken,
   verifyAccessToken,
+  verifyRefreshToken,
 } from "@/lib/jwt.js";
+import { AUTH_CONFIG } from "@/config/constants.js";
 
 export const isTokenBlacklisted = async (token: string): Promise<boolean> => {
   const result = await redisClient.get(`bl:${token}`);
@@ -44,7 +46,7 @@ export const registerService = async (
     const refreshTokenDoc = await RefreshToken.create({
       token: refreshToken,
       userId: newUser._id,
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      expiresAt: new Date(Date.now() + AUTH_CONFIG.REFRESH_TOKEN_COOKIE_MAX_AGE),
     });
 
     return {
@@ -90,7 +92,7 @@ export const loginService = async (email: string, password: string) => {
       { userId: user._id },
       {
         token: refreshToken,
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        expiresAt: new Date(Date.now() + AUTH_CONFIG.REFRESH_TOKEN_COOKIE_MAX_AGE),
       },
       { upsert: true, new: true },
     );
@@ -116,19 +118,39 @@ export const logoutService = async (
   accessToken: string,
   refreshToken: string,
 ) => {
+  // Blacklist access token first to prevent race condition
+  try {
+    const payload = verifyAccessToken(accessToken);
+    const expiresIn = payload.exp - Math.floor(Date.now() / 1000);
+    if (expiresIn > 0) {
+      await redisClient.set(`bl:${accessToken}`, "blacklisted", "EX", expiresIn);
+    }
+  } catch (error) {
+    // If token is invalid/expired, still proceed with refresh token deletion
+    logger.warn("Access token verification failed during logout", {
+      error: normalizeError(error),
+    });
+  }
+
+  // Delete refresh token
   const deletedToken = await RefreshToken.findOneAndDelete({
     token: refreshToken,
   });
   if (!deletedToken) throw new UnauthorizedError("Invalid refresh token");
-
-  const payload = verifyAccessToken(accessToken);
-  const expiresIn = payload.exp - Math.floor(Date.now() / 1000);
-  await redisClient.set(`bl:${accessToken}`, "blacklisted", "EX", expiresIn);
+  
   return;
 };
 
 export const refreshTokenService = async (refreshToken: string) => {
   try {
+    // First verify the token signature
+    let decoded;
+    try {
+      decoded = verifyRefreshToken(refreshToken);
+    } catch (error) {
+      throw new UnauthorizedError("Invalid refresh token");
+    }
+
     const existingToken = await RefreshToken.findOne({ token: refreshToken });
     if (!existingToken) throw new UnauthorizedError("Invalid refresh token");
 
@@ -136,6 +158,13 @@ export const refreshTokenService = async (refreshToken: string) => {
       await RefreshToken.deleteOne({ token: refreshToken });
       throw new UnauthorizedError("Refresh token expired");
     }
+
+    // Verify token belongs to the user in database
+    if (existingToken.userId.toString() !== decoded.userId) {
+      await RefreshToken.deleteOne({ token: refreshToken });
+      throw new UnauthorizedError("Token user mismatch");
+    }
+
     const user = await User.findById(existingToken.userId);
     if (!user) {
       await RefreshToken.deleteOne({ token: refreshToken });
