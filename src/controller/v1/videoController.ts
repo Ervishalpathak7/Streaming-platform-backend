@@ -1,8 +1,8 @@
-import { completeUploadService } from "@/services/video/complete";
-import { fetchUserVideos } from "@/services/video/fetchuservideo";
-import { signedUrlService } from "@/services/video/getsignedurl";
-import { videoInItService } from "@/services/video/initService";
-import type { components } from "@/types/api-types";
+import { completeUploadService } from "@/services/video/complete.js";
+import { fetchUserVideos } from "@/services/video/fetchuservideo.js";
+import { signedUrlService } from "@/services/video/getsignedurl.js";
+import { videoInItService } from "@/services/video/initService.js";
+import type { components } from "@/types/api-types.js";
 import type { Request, Response } from "express";
 
 export type inItUploadRequest = components["schemas"]["InitVideoUploadRequest"];

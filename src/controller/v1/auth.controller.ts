@@ -1,12 +1,12 @@
-import { UnauthorizedError } from "@/error";
-import { generateAccessToken } from "@/lib/jwt";
+import { UnauthorizedError } from "@/error/errors.js";
+import { generateAccessToken } from "@/lib/jwt.js";
 import {
   loginService,
   logoutService,
   refreshTokenService,
   registerService,
-} from "@/services/auth.service";
-import type { operations } from "@/types/api-types";
+} from "@/services/auth.service.js";
+import type { operations } from "@/types/api-types.js";
 import type { Request, Response } from "express";
 
 type RegisterBody =
