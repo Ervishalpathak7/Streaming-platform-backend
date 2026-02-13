@@ -27,12 +27,12 @@ v1AuthRouter.post(
 );
 v1AuthRouter.post(
   "/logout",
+  authMiddleware,
   rateLimitMiddleware(authRouteLimiter, "AUTH"),
   asyncHandler(logoutControllerV1),
 );
 v1AuthRouter.post(
   "/refresh-token",
-  authMiddleware,
   rateLimitMiddleware(authRouteLimiter, "AUTH"),
   asyncHandler(refreshTokenControllerV1),
 );
