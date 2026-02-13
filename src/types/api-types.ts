@@ -38,7 +38,121 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/auth/refresh": {
+    "/auth/refresh-token": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Refresh access token */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Access token refreshed */
+                200: {
+                    headers: {
+                        Authorization?: string;
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MinimalSuccessResponse"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                429: components["responses"]["RateLimited"];
+                500: components["responses"]["ServerError"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Logout user and invalidate refresh token */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Logged out successfully */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                401: components["responses"]["Unauthorized"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/user/profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get logged-in user profile */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Profile fetched */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["UserProfileResponse"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                429: components["responses"]["RateLimited"];
+                500: components["responses"]["ServerError"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/videos/init": {
         parameters: {
             query?: never;
             header?: never;
@@ -48,17 +162,156 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Refresh access token
-         * @description Issues a new access token using refresh token from httpOnly cookie.
+         * Initialize video upload
+         * @description Creates a video record in INITIATED state. State transition: NONE → INITIATED.
          */
-        post: operations["refreshAccessToken"];
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "Idempotency-Key": string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["InitVideoUploadRequest"];
+                };
+            };
+            responses: {
+                /** @description Upload initialized */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["InitVideoUploadResponse"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                /** @description Duplicate request or invalid state */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                422: components["responses"]["ValidationError"];
+                429: components["responses"]["RateLimited"];
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/videos/upload/init": {
+    "/videos/{videoId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get video metadata and status */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    videoId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Video details */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["VideoResponse"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                /** @description Video not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                429: components["responses"]["RateLimited"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/videos/signedurl/{videoId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get multipart upload signed URLs
+         * @description Allowed only when video status = INITIATED. State transition: INITIATED → UPLOADING.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    videoId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Signed URLs generated */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["GetSignedUrlResponse"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                /** @description Video not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Invalid video state (must be INITIATED) */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                429: components["responses"]["RateLimited"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/videos/complete/{videoId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -67,42 +320,94 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Initialize multipart video upload */
-        post: operations["initVideoUpload"];
+        /**
+         * Complete multipart upload
+         * @description Allowed only when video status = UPLOADING. State transition: UPLOADING → PROCESSING. Transcoding and final processing occur asynchronously.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    videoId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CompleteVideoUploadRequest"];
+                };
+            };
+            responses: {
+                /** @description Upload completed and processing started */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MinimalSuccessResponse"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                /** @description Video not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Invalid video state (must be UPLOADING) */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                429: components["responses"]["RateLimited"];
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/videos/upload/presigned-urls": {
+    "/videos/mine": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
-        put?: never;
-        /** Get presigned URLs for upload parts */
-        post: operations["getPresignedUrls"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/videos/upload/complete": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
+        /** Get all videos of the logged-in user */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description List of user's videos */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            status?: string;
+                            data?: components["schemas"]["GetMyVideosResponse"][];
+                        };
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                429: components["responses"]["RateLimited"];
+                500: components["responses"]["ServerError"];
+            };
         };
-        get?: never;
         put?: never;
-        /** Complete multipart video upload */
-        post: operations["completeVideoUpload"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -113,6 +418,10 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        MinimalSuccessResponse: {
+            /** @example success */
+            status: string;
+        };
         LoginRequest: {
             /** Format: email */
             email: string;
@@ -124,59 +433,98 @@ export interface components {
             email: string;
             password: string;
         };
-        AuthSuccessResponse: {
-            /** @example success */
-            status: string;
-            /** @description Short-lived JWT access token */
-            accessToken: string;
+        UserProfileResponse: {
+            status?: string;
+            data?: {
+                id?: string;
+                name?: string;
+                email?: string;
+            };
         };
-        InitUploadRequest: {
+        InitVideoUploadRequest: {
+            title: string;
+            description?: string;
             filename: string;
-            /** @example video/mp4 */
-            contentType: string;
-            /**
-             * Format: int64
-             * @example 104857600
-             */
-            size: number;
+            /** @example 1073741824 */
+            filesize: number;
+            /** @enum {string} */
+            filetype: "video/mp4" | "video/webm" | "video/mkv" | "video/mov";
         };
-        InitUploadResponse: {
+        InitVideoUploadResponse: {
+            status: string;
             videoId: string;
-            uploadId: string;
         };
-        PresignedUrlRequest: {
-            videoId: string;
-            uploadId: string;
-            parts: number[];
+        GetSignedUrlResponse: {
+            status?: string;
+            data?: {
+                signedUrls?: {
+                    partNumber?: number;
+                    /** Format: uri */
+                    url?: string;
+                }[];
+            };
         };
-        PresignedUrlResponse: {
-            urls?: {
-                partNumber: number;
-                /** Format: uri */
-                url: string;
-            }[];
-        };
-        CompleteUploadRequest: {
-            videoId: string;
-            uploadId: string;
+        CompleteVideoUploadRequest: {
             parts: {
-                partNumber: number;
-                etag: string;
+                partNumber?: number;
+                eTag?: string;
             }[];
         };
-        SuccessResponse: {
-            /** @example success */
-            status: string;
-            /** @example Operation completed successfully */
-            message: string;
+        /** @description Video lifecycle is event-driven. INITIATED → UPLOADING → PROCESSING → READY/FAILED. State transitions are controlled by backend events. */
+        VideoResponse: {
+            id: string;
+            title: string;
+            description?: string | null;
+            /** @enum {string} */
+            status: "INITIATED" | "UPLOADING" | "PROCESSING" | "READY" | "FAILED";
+            /** Format: uri */
+            playbackUrl?: string | null;
+            /** Format: uri */
+            thumbnailUrl?: string | null;
+            /** Format: date-time */
+            createdAt: string;
         };
-        ErrorResponse: {
-            /** @example error */
-            status: string;
-            message: string;
+        GetMyVideosResponse: {
+            status?: string;
+            data?: {
+                videos?: components["schemas"]["VideoResponse"][];
+                processingVideos?: components["schemas"]["VideoResponse"][];
+                readyVideos?: components["schemas"]["VideoResponse"][];
+                totalPages?: number;
+                currentPage?: number;
+            };
         };
     };
-    responses: never;
+    responses: {
+        /** @description Unauthorized */
+        Unauthorized: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content?: never;
+        };
+        /** @description Validation error */
+        ValidationError: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content?: never;
+        };
+        /** @description Too many requests */
+        RateLimited: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content?: never;
+        };
+        /** @description Internal server error */
+        ServerError: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content?: never;
+        };
+    };
     parameters: never;
     requestBodies: never;
     headers: never;
@@ -197,26 +545,20 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Login successful (refresh token set in httpOnly cookie) */
+            /** @description Login successful */
             200: {
                 headers: {
-                    /** @description HttpOnly refresh token cookie */
-                    "Set-Cookie"?: string;
+                    Authorization?: string;
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AuthSuccessResponse"];
+                    "application/json": components["schemas"]["MinimalSuccessResponse"];
                 };
             };
-            /** @description Invalid credentials */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
+            401: components["responses"]["Unauthorized"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["RateLimited"];
+            500: components["responses"]["ServerError"];
         };
     };
     registerUser: {
@@ -232,118 +574,27 @@ export interface operations {
             };
         };
         responses: {
-            /** @description User registered successfully (refresh token set in httpOnly cookie) */
+            /** @description User registered */
             201: {
                 headers: {
-                    /** @description HttpOnly refresh token cookie */
-                    "Set-Cookie"?: string;
+                    Authorization: string;
+                    cookie: string;
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AuthSuccessResponse"];
+                    "application/json": components["schemas"]["MinimalSuccessResponse"];
                 };
             };
-        };
-    };
-    refreshAccessToken: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Access token refreshed */
-            200: {
+            /** @description Email already exists */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/json": components["schemas"]["AuthSuccessResponse"];
-                };
+                content?: never;
             };
-            /** @description Invalid or expired refresh token */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-        };
-    };
-    initVideoUpload: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["InitUploadRequest"];
-            };
-        };
-        responses: {
-            /** @description Upload initialized */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["InitUploadResponse"];
-                };
-            };
-        };
-    };
-    getPresignedUrls: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PresignedUrlRequest"];
-            };
-        };
-        responses: {
-            /** @description Presigned URLs generated */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PresignedUrlResponse"];
-                };
-            };
-        };
-    };
-    completeVideoUpload: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CompleteUploadRequest"];
-            };
-        };
-        responses: {
-            /** @description Upload completed and processing started */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SuccessResponse"];
-                };
-            };
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["RateLimited"];
+            500: components["responses"]["ServerError"];
         };
     };
 }
