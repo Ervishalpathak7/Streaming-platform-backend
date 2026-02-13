@@ -66,7 +66,7 @@ export const createUser = async (user: UserType) => {
       "Failed to create user",
       normalizeError(error),
     );
-  }``
+  }
 };
 
 export const updateUser = async (id: string, user: Partial<UserType>) => {
