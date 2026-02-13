@@ -1,16 +1,32 @@
 import { completeUploadService } from "@/services/video/complete.js";
 import { fetchUserVideos } from "@/services/video/fetchuservideo.js";
 import { signedUrlService } from "@/services/video/getsignedurl.js";
-import { videoInItService } from "@/services/video/initService.js";
+import { videoInitService } from "@/services/video/initService.js";
 import type { components } from "@/types/api-types.js";
 import type { Request, Response } from "express";
+import {
+  validateObjectId,
+  validatePagination,
+  validateIdempotencyKey,
+  sanitizeInput,
+} from "@/utils/validation.js";
 
-export type inItUploadRequest = components["schemas"]["InitVideoUploadRequest"];
+export type InitUploadRequest = components["schemas"]["InitVideoUploadRequest"];
 
 export const initUploadControllerV1 = async (req: Request, res: Response) => {
-  const videoMetaData = req.body as inItUploadRequest;
-  const idempotencyKey = req.header("Idempotency-Key") as string;
-  const result = await videoInItService(
+  const videoMetaData = sanitizeInput(req.body) as InitUploadRequest;
+  const idempotencyKey = req.header("Idempotency-Key");
+  
+  if (!idempotencyKey) {
+    return res.status(400).json({
+      status: "error",
+      message: "Idempotency-Key header is required",
+    });
+  }
+  
+  validateIdempotencyKey(idempotencyKey);
+  
+  const result = await videoInitService(
     videoMetaData,
     idempotencyKey,
     req.userId as string,
@@ -30,6 +46,7 @@ export const initUploadControllerV1 = async (req: Request, res: Response) => {
 
 export const getSignedUrlControllerV1 = async (req: Request, res: Response) => {
   const { videoId } = req.params as { videoId: string };
+  validateObjectId(videoId, "videoId");
   const result = await signedUrlService(videoId, req.userId as string);
   if (!result.signedUrls) {
     return res.status(200).json({ status: result.status });
@@ -46,7 +63,8 @@ export const completeUploadControllerV1 = async (
   res: Response,
 ) => {
   const { videoId } = req.params as { videoId: string };
-  const { parts } = req.body as {
+  validateObjectId(videoId, "videoId");
+  const { parts } = sanitizeInput(req.body) as {
     parts: { partNumber: number; etag: string }[];
   };
 
@@ -63,18 +81,13 @@ export const completeUploadControllerV1 = async (
 };
 
 export const getMyVideosControllerV1 = async (req: Request, res: Response) => {
-  const {
-    page = 1,
-    limit = 10,
-    status,
-  } = req.query as {
-    page: string;
+  const { page, limit, status } = req.query as {
+    page?: string;
     limit?: string;
     status?: string;
   };
 
-  const pageNum = parseInt(page as string, 10);
-  const limitNum = parseInt(limit as string, 10);
+  const { page: pageNum, limit: limitNum } = validatePagination(page, limit);
 
   const videos = await fetchUserVideos(
     req.userId as string,
