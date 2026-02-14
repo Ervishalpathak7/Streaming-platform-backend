@@ -37,6 +37,8 @@ export async function buildApp(): Promise<FastifyInstance> {
     ],
     credentials: true, // Required for cookies (RefreshToken)
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+    exposedHeaders: ["Authorization"],
   });
 
   // Rate Limiting
