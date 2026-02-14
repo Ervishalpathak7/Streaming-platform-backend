@@ -18,8 +18,14 @@ export async function registerUser(input: RegisterInput) {
 
   const passwordHash = await hashPassword(input.password);
   const user = await createUser({ ...input, passwordHash });
+  const accessToken = signAccessToken({
+    id: user.id,
+    email: user.email,
+    role: user.role,
+  });
+  const refreshToken = signRefreshToken({ id: user.id, version: 1 }); // Simple versioning
 
-  return user;
+  return { accessToken, refreshToken };
 }
 
 export async function loginUser(input: LoginInput) {

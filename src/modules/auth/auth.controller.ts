@@ -7,16 +7,46 @@ export async function registerHandler(
   request: FastifyRequest<{ Body: RegisterInput }>,
   reply: FastifyReply,
 ) {
-  const user = await registerUser(request.body);
-  reply.code(StatusCodes.CREATED).send(user);
+  const { accessToken, refreshToken } = await registerUser(request.body);
+
+  reply.setCookie("refreshToken", refreshToken, {
+    path: "/",
+    httpOnly: true,
+    secure: true, // Always true since we use cookie-secure in prod/dev usually, but check config
+    sameSite: "none", // Needed for cross-origin
+    expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+  });
+
+  // Send Access Token in Header
+  reply.header("Authorization", `Bearer ${accessToken}`);
+
+  return reply.code(StatusCodes.CREATED).send({
+    status: "success",
+    message: "User registered successfully",
+  });
 }
 
 export async function loginHandler(
   request: FastifyRequest<{ Body: LoginInput }>,
   reply: FastifyReply,
 ) {
-  const tokens = await loginUser(request.body);
-  reply.code(StatusCodes.OK).send(tokens);
+  const { accessToken, refreshToken } = await loginUser(request.body);
+
+  reply.setCookie("refreshToken", refreshToken, {
+    path: "/",
+    httpOnly: true,
+    secure: true,
+    sameSite: "none",
+    expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+  });
+
+  // Send Access Token in Header
+  reply.header("Authorization", `Bearer ${accessToken}`);
+
+  return reply.code(StatusCodes.OK).send({
+    status: "success",
+    message: "Login successful",
+  });
 }
 
 export async function logoutHandler(
