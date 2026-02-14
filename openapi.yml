@@ -427,7 +427,7 @@ components:
           type: string
         data:
           type: object
-          required: [id , name , email]
+          required: [id, name, email]
           additionalProperties: false
           properties:
             id:
@@ -490,7 +490,7 @@ components:
               items:
                 type: object
                 additionalProperties: false
-                required: [partNumber , url]
+                required: [partNumber, url]
                 properties:
                   partNumber:
                     type: integer
@@ -544,12 +544,12 @@ components:
     GetMyVideosResponse:
       type: object
       additionalProperties: false
-      required: [status , message , data]
+      required: [status, message, data]
       properties:
         status:
           type: string
           enum: [success]
-        message : 
+        message:
           type: string
         data:
           type: object
