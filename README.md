@@ -1,188 +1,123 @@
-# Streaming-platform-backend
+# Video Streaming Backend
 
-Backend service for a video streaming platform.
-Handles authentication, video uploads, asynchronous processing, and secure access to user-owned content.
+A production-grade, contract-first backend for a video streaming platform.
+Built with **Node.js (Fastify)**, **TypeScript**, **PostgreSQL (Prisma)**, and **AWS S3**.
 
-This repository represents **v1.0.0** — a stable backend ready for frontend integration.
+## 🏗 Architecture
 
----
+This project follows **Clean Architecture** principles with a **Feature-Based Module** structure.
 
-## Tech Stack
+### Key Layers
 
-* **Node.js**
-* **Express.js**
-* **MongoDB + Mongoose**
-* **Cloudinary** (video storage, HLS streaming, thumbnails)
-* **JWT Authentication**
-* **Multer** (temporary file uploads)
-* **Winston** (structured logging)
-* **Docker** (deployment-ready)
+- **Routes / Controllers**: Handle HTTP requests, DTO validation (Zod), and response formatting.
+- **Services**: Contain pure business logic. Decoupled from HTTP and Database details.
+- **Repositories**: Abstract the data access layer (Prisma).
+- **Core / Common**: specific implementation of cross-cutting concerns (Logger, Config, Error Handling).
 
----
+### Technology Choices & Tradeoffs
 
-## Core Features
+#### 1. Fastify vs Express
 
-* User registration & login (JWT-based)
-* Secure video upload with async processing
-* HLS (`.m3u8`) streaming support
-* Automatic thumbnail generation
-* Video status lifecycle (`PROCESSING → READY / FAILED`)
-* Fetch videos for logged-in user with pagination
-* Centralized error handling
-* Safe temporary file cleanup
-* Structured logging with timestamps
+- **Choice**: **Fastify**.
+- **Reason**:
+  - Significantly higher performance (req/sec).
+  - Native support for JSON Schema/Zod validation which aligns with "Contract-First" requirement.
+  - Better encapsulation via plugins.
+- **Tradeoff**: Smaller ecosystem than Express, but sufficient for modern backend needs.
 
----
+#### 2. PostgreSQL over MongoDB
 
-## Architecture Overview
+- **Choice**: **PostgreSQL**.
+- **Reason**:
+  - **Relational Data**: Users, Videos, and Comments have inherent relationships. SQL enforces integrity.
+  - **ACID Compliance**: Critical for billing or state transitions (video upload status).
+  - **Strict Schema**: Aligns with the strict typing goals of the project.
+- **Tradeoff**: Vertical scaling is harder than MongoDB sharding, but sufficient for millions of users.
 
-### Upload Flow
+#### 3. Prisma ORM
 
-1. Client uploads video
-2. File stored temporarily on disk via Multer
-3. Video record created immediately with status `PROCESSING`
-4. Async upload to Cloudinary (HLS + thumbnail)
-5. Video metadata updated (`READY` / `FAILED`)
-6. Temporary file deleted from server
+- **Choice**: **Prisma**.
+- **Reason**:
+  - **Type Safety**: Best-in-class TypeScript integration.
+  - **Schema-First**: The schema is the source of truth, matching our "Contract-First" API philosophy.
+- **Tradeoff**: Runtime performance overhead compared to raw SQL, but negligible for most use cases.
 
-This ensures:
+#### 4. Authentication
 
-* Non-blocking uploads
-* Resilient failure handling
-* Clean filesystem state
+- **Hashing**: **Argon2** (Better resistance to GPU attacks than Bcrypt).
+- **Tokens**: **JWT** (Stateless access) + **Refresh Tokens** (Database backed for interactions).
 
----
+## 🚀 Getting Started
 
-## API Routes
+### Prerequisites
 
-### Auth
+- Node.js 20+
+- Docker & Docker Compose
 
-| Method | Route                | Description       |
-| ------ | -------------------- | ----------------- |
-| POST   | `/api/auth/register` | Register new user |
-| POST   | `/api/auth/login`    | Login user        |
+### Installation
 
----
+1. **Install Dependencies**
 
-### Videos
+   ```bash
+   npm install
+   ```
 
-| Method | Route                | Description                          |
-| ------ | -------------------- | ------------------------------------ |
-| POST   | `/api/videos/upload` | Upload a new video                   |
-| GET    | `/api/videos/my`     | Get videos of logged-in user         |
-| GET    | `/api/videos/:id`    | Get video by ID (owner-only for now) |
+2. **Environment Setup**
 
----
+   ```bash
+   cp .env.example .env
+   # Update .env with your credentials if needed
+   ```
 
-## Pagination (Example)
+3. **Start Database**
+
+   ```bash
+   docker-compose up -d postgres
+   ```
+
+4. **Run Migrations**
+
+   ```bash
+   npx prisma migrate dev
+   ```
+
+5. **Start Server**
+   ```bash
+   npm run dev
+   ```
+   Server will start at `http://localhost:3000`.
+
+### 📚 API Documentation
+
+OpenAPI Swagger documentation is auto-generated and available at:
+👉 **[http://localhost:3000/documentation](http://localhost:3000/documentation)**
+
+## 🧪 Testing
+
+The project includes Integration and Unit tests.
+
+- **Run All Tests**:
+
+  ```bash
+  npm test
+  ```
+
+- **Unit Tests**: Mocks external dependencies (S3, Database).
+- **Integration Tests**: Tests the full request flow against a running database connection.
+
+## 📦 Project Structure
 
 ```
-GET /api/videos/my?page=1&limit=10
+src/
+├── app.ts                 # App Factory & Plugins
+├── server.ts              # Entry Point
+├── common/                # Shared Utilities
+│   ├── config/            # Env Validation
+│   ├── database/          # Prisma Wrapper
+│   ├── errors/            # Global Error Handler
+│   ├── logger/            # Pino Logger
+│   └── middleware/        # Auth & Security
+└── modules/               # Feature Modules
+    ├── auth/              # Authentication Feature
+    └── video/             # Video Upload Feature
 ```
-
-Response includes metadata:
-
-```json
-{
-  "meta": {
-    "page": 1,
-    "limit": 10,
-    "total": 6,
-    "totalPages": 1
-  }
-}
-```
-
----
-
-## Environment Variables
-
-Create a `.env` file in root:
-
-```env
-PORT=5000
-NODE_ENV=development
-
-MONGO_URI=your_mongodb_uri
-
-REDIS_URL = your_redis_url (leave empty if you have redis installed and you are running it locally)
-
-JWT_SECRET=your_jwt_secret
-JWT_EXPIRES_IN=7d
-
-CLOUDINARY_CLOUD_NAME=xxxx
-CLOUDINARY_API_KEY=xxxx
-CLOUDINARY_API_SECRET=xxxx
-```
-
----
-
-## Running Locally
-
-```bash
-# install dependencies
-npm install
-
-# start dev server
-npm run dev
-```
-
----
-
-## Logging
-
-* Uses **Winston**
-* Console logs for development
-* Structured JSON logs (file-ready)
-* Error stack traces preserved
-* Timezone-aware timestamps (IST)
-
----
-
-## Error Handling
-
-* Centralized `AppError` class
-* Async error wrapper
-* No unhandled promise rejections
-* Consistent error response format
-
----
-
-## Security Notes
-
-* JWT verified on every protected route
-* Users can only access **their own videos**
-* No direct file-system exposure
-* Cloudinary URLs returned only when video is `READY`
-
----
-
-## Versioning
-
-* **v1.0.0**
-
-  * Backend feature-complete
-  * No video sharing
-  * No public access
-  * Focused on core upload & playback flow
-
-Future versions will add:
-
-* Video sharing
-* Public/private controls
-* Analytics
-* Admin tools
-* Caching layer (Redis)
-
----
-
-## License
-
-MIT
-
----
-
-## Author
-
-Vishal
-Backend focused on correctness, scalability, and clean architecture.

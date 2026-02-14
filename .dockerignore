@@ -1,10 +1,7 @@
 node_modules
+dist
 .env
 .git
 .gitignore
-.vscode
-.vs
-npm-debug.log
-logs
-docker-compose*
-compose*
+coverage
+test
