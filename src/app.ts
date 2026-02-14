@@ -4,6 +4,7 @@ import helmet from "@fastify/helmet";
 import rateLimit from "@fastify/rate-limit";
 import fastifySwagger from "@fastify/swagger";
 import fastifySwaggerUi from "@fastify/swagger-ui";
+import cookie from "@fastify/cookie";
 import {
   serializerCompiler,
   validatorCompiler,
@@ -27,6 +28,9 @@ export async function buildApp(): Promise<FastifyInstance> {
 
   // Security Headers
   await app.register(helmet, { global: true });
+
+  // Cookie
+  await app.register(cookie);
 
   // CORS
   await app.register(cors, {
