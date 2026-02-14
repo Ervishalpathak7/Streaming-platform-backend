@@ -26,6 +26,9 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
+# Install OpenSSL for Prisma
+RUN apk add --no-cache openssl
+
 # Install only production dependencies
 COPY package*.json ./
 COPY prisma ./prisma/
@@ -41,10 +44,14 @@ COPY --from=builder /app/dist ./dist
 # Create a non-root user for security
 RUN addgroup -g 1001 -S nodejs
 RUN adduser -S nodejs -u 1001
+
+# Fix permissions
+RUN chown -R nodejs:nodejs /app
+
 USER nodejs
 
 # Expose the port
-EXPOSE 5000
+EXPOSE 3000
 
-# Start the server
-CMD ["node", "dist/server.js"]
+# Start the server (with migrations)
+CMD ["sh", "-c", "npx prisma migrate deploy && node dist/server.js"]
