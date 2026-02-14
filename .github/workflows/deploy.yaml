@@ -4,25 +4,51 @@ on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
-  deploy:
+  test:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Run Linting
+        run: npm run lint
+
+    deploy:
+    needs: test
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
       - name: Deploy to Server
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SERVER_HOST }}
-          username: ubuntu
+          username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
-          debug: true
           script: |
-            whoami
             cd ~/Streaming-platform-backend
-            git pull
-            npm install
-            pm2 restart streaming-backend || pm2 start src/index.js --name streaming-backend
-            echo "Deployment completed successfully."
+            
+            # Pull latest changes
+            git pull origin main
+            
+            # Rebuild and start containerized application
+            # docker-compose is typically aliased to 'docker compose' in newer versions
+            docker compose up --build -d
+            
+            # Cleanup unused images
+            docker image prune -f
+            
+            echo "🚀 Deployment successfully completed!"
