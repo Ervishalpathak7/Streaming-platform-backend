@@ -7,7 +7,7 @@ export async function registerHandler(
   request: FastifyRequest<{ Body: RegisterInput }>,
   reply: FastifyReply,
 ) {
-  const { accessToken, refreshToken } = await registerUser(request.body);
+  const { user, accessToken, refreshToken } = await registerUser(request.body);
 
   reply.setCookie("refreshToken", refreshToken, {
     path: "/",
@@ -23,6 +23,9 @@ export async function registerHandler(
   return reply.code(StatusCodes.CREATED).send({
     status: "success",
     message: "User registered successfully",
+    data: {
+      user,
+    },
   });
 }
 
@@ -30,7 +33,7 @@ export async function loginHandler(
   request: FastifyRequest<{ Body: LoginInput }>,
   reply: FastifyReply,
 ) {
-  const { accessToken, refreshToken } = await loginUser(request.body);
+  const { user, accessToken, refreshToken } = await loginUser(request.body);
 
   reply.setCookie("refreshToken", refreshToken, {
     path: "/",
@@ -46,6 +49,9 @@ export async function loginHandler(
   return reply.code(StatusCodes.OK).send({
     status: "success",
     message: "Login successful",
+    data: {
+      user,
+    },
   });
 }
 

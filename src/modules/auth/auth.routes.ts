@@ -11,6 +11,7 @@ import {
   registerSchema,
   loginSchema,
   loginResponseSchema,
+  registerResponseSchema,
   userSchema,
   refreshTokenSchema,
   refreshTokenResponseSchema,
@@ -24,7 +25,7 @@ export async function authRoutes(app: FastifyInstance) {
       schema: {
         body: registerSchema,
         response: {
-          201: userSchema,
+          201: registerResponseSchema,
         },
         tags: ["Auth"],
       },

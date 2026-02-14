@@ -25,7 +25,7 @@ export async function registerUser(input: RegisterInput) {
   });
   const refreshToken = signRefreshToken({ id: user.id, version: 1 }); // Simple versioning
 
-  return { accessToken, refreshToken };
+  return { user, accessToken, refreshToken };
 }
 
 export async function loginUser(input: LoginInput) {
@@ -46,7 +46,7 @@ export async function loginUser(input: LoginInput) {
   });
   const refreshToken = signRefreshToken({ id: user.id, version: 1 }); // Simple versioning
 
-  return { accessToken, refreshToken };
+  return { user, accessToken, refreshToken };
 }
 
 export async function refreshAccessToken(refreshToken: string) {

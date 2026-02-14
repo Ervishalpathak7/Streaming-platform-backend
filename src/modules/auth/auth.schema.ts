@@ -11,16 +11,28 @@ export const registerSchema = z.object({
   name: z.string().optional(),
 });
 
-export const loginResponseSchema = z.object({
-  accessToken: z.string(),
-  refreshToken: z.string(),
-});
-
 export const userSchema = z.object({
   id: z.string().uuid(),
   email: z.string().email(),
   name: z.string().optional(),
   role: z.enum(["USER", "ADMIN"]),
+  videos: z.array(z.string()).optional(),
+});
+
+export const loginResponseSchema = z.object({
+  status: z.string(),
+  message: z.string(),
+  data: z.object({
+    user: userSchema,
+  }),
+});
+
+export const registerResponseSchema = z.object({
+  status: z.string(),
+  message: z.string(),
+  data: z.object({
+    user: userSchema,
+  }),
 });
 
 export const refreshTokenSchema = z.object({
