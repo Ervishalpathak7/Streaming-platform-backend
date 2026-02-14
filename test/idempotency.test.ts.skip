@@ -1,0 +1,134 @@
+import { buildApp } from "../src/app";
+import { FastifyInstance } from "fastify";
+import { describe, it, expect, beforeAll, afterAll } from "@jest/globals";
+import { prisma } from "../src/common/database/prisma";
+import { signAccessToken } from "../src/modules/auth/auth.utils";
+
+jest.mock("../src/modules/video/video.service", () => ({
+  initiateUpload: jest.fn().mockResolvedValue({
+    videoId: "mock-video-id",
+    uploadUrl: "https://mock-s3.url/video",
+  }),
+  confirmUpload: jest.fn().mockResolvedValue({ status: "UPLOADED" }),
+}));
+
+describe("Idempotency Middleware", () => {
+  let app: FastifyInstance;
+  let token: string;
+  let userId: string;
+
+  beforeAll(async () => {
+    app = await buildApp();
+    await app.ready();
+
+    // Create a user and token
+    userId = `user-${Date.now()}`;
+    const user = await prisma.user.create({
+      data: {
+        email: `test-idempotency-${Date.now()}@example.com`,
+        password: "hashedpassword",
+        id: userId,
+      },
+    });
+
+    token = signAccessToken({
+      id: user.id,
+      email: user.email,
+      role: user.role,
+    });
+  });
+
+  afterAll(async () => {
+    await app.close();
+    await prisma.$disconnect();
+  });
+
+  it("should process first request and return 201", async () => {
+    const key = `key-${Date.now()}`;
+    const response = await app.inject({
+      method: "POST",
+      url: "/api/v1/videos",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Idempotency-Key": key,
+      },
+      payload: {
+        title: "Test Video",
+        fileType: "video/mp4",
+        fileSize: 1024,
+      },
+    });
+
+    expect(response.statusCode).toBe(201);
+    expect(response.headers["x-idempotency-key"]).toBe(key);
+  });
+
+  it("should return cached response for same key", async () => {
+    const key = `key-dup-${Date.now()}`;
+    const payload = {
+      title: "Test Video Dup",
+      fileType: "video/mp4",
+      fileSize: 1024,
+    };
+
+    // First Request
+    const res1 = await app.inject({
+      method: "POST",
+      url: "/api/v1/videos",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Idempotency-Key": key,
+      },
+      payload,
+    });
+    expect(res1.statusCode).toBe(201);
+
+    // Second Request (Duplicate)
+    const res2 = await app.inject({
+      method: "POST",
+      url: "/api/v1/videos",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Idempotency-Key": key,
+      },
+      payload,
+    });
+
+    expect(res2.statusCode).toBe(201);
+    expect(JSON.parse(res2.payload)).toEqual(JSON.parse(res1.payload));
+  });
+
+  it("should block concurrent requests (mocked scenario or race condition)", async () => {
+    // Hard to simulate exact race condition in integration test without delays,
+    // but we can verify the key locking mechanism exists in DB.
+    const key = `key-lock-${Date.now()}`;
+
+    // Manually create a locked key
+    await prisma.idempotencyKey.create({
+      data: {
+        key,
+        userId,
+        path: "/api/v1/videos",
+        method: "POST",
+        statusCode: null, // Locked
+        responseBody: null,
+      },
+    });
+
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/v1/videos",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Idempotency-Key": key,
+      },
+      payload: {
+        title: "Test Video Lock",
+        fileType: "video/mp4",
+        fileSize: 1024,
+      },
+    });
+
+    expect(res.statusCode).toBe(409); // Conflict
+  });
+});
