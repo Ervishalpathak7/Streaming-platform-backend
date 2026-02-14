@@ -12,6 +12,7 @@ const envSchema = z.object({
   LOG_LEVEL: z
     .enum(["fatal", "error", "warn", "info", "debug", "trace"])
     .default("info"),
+  FRONTEND_URL: z.string().url(),
   DATABASE_URL: z.string(),
   JWT_SECRET: z.string().min(10),
   JWT_EXPIRES_IN: z.string().default("15m"),

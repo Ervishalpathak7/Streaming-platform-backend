@@ -30,7 +30,12 @@ export async function buildApp(): Promise<FastifyInstance> {
 
   // CORS
   await app.register(cors, {
-    origin: "*", // TODO: Restrict in production
+    origin: [
+      config.FRONTEND_URL,
+      "https://streamkaro.app",
+      "http://localhost:5173", // Common Vite dev port
+    ],
+    credentials: true, // Required for cookies (RefreshToken)
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   });
 
