@@ -1,0 +1,56 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String?
+  role      Role     @default(USER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  videos    Video[]
+}
+
+model Video {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  url         String?  @default("")
+  status      VideoStatus @default(INITIATED)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum VideoStatus {
+  INITIATED
+  UPLOADED
+  PUBLISHED
+  FAILED
+}
+
+model IdempotencyKey {
+  key          String   @id
+  userId       String
+  path         String
+  method       String
+  statusCode   Int?
+  responseBody String? // Serialized JSON
+  createdAt    DateTime @default(now())
+  lockedAt     DateTime @default(now())
+}
