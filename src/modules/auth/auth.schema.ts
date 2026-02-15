@@ -22,17 +22,11 @@ export const userSchema = z.object({
 export const loginResponseSchema = z.object({
   status: z.string(),
   message: z.string(),
-  data: z.object({
-    user: userSchema,
-  }),
 });
 
 export const registerResponseSchema = z.object({
   status: z.string(),
   message: z.string(),
-  data: z.object({
-    user: userSchema,
-  }),
 });
 
 export const refreshTokenSchema = z.object({

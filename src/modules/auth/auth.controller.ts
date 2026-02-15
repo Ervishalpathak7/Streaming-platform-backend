@@ -23,9 +23,6 @@ export async function registerHandler(
   return reply.code(StatusCodes.CREATED).send({
     status: "success",
     message: "User registered successfully",
-    data: {
-      user,
-    },
   });
 }
 
@@ -49,9 +46,6 @@ export async function loginHandler(
   return reply.code(StatusCodes.OK).send({
     status: "success",
     message: "Login successful",
-    data: {
-      user,
-    },
   });
 }
 
@@ -59,8 +53,7 @@ export async function logoutHandler(
   request: FastifyRequest,
   reply: FastifyReply,
 ) {
-  // If using cookies, clear them here
-  // reply.clearCookie('token');
+  reply.clearCookie("refreshToken");
   reply.code(StatusCodes.OK).send({ message: "Logged out successfully" });
 }
 
@@ -74,7 +67,6 @@ export async function refreshHandler(
 }
 
 export async function meHandler(request: FastifyRequest, reply: FastifyReply) {
-  // request.user is populated by authenticate middleware
   const user = (request as any).user;
   reply.code(StatusCodes.OK).send(user);
 }

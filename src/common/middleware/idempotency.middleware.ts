@@ -3,6 +3,8 @@ import { prisma } from "../database/prisma";
 import { AppError } from "../errors/error-handler";
 import { StatusCodes } from "http-status-codes";
 import { logger } from "../logger/logger";
+import { User } from "@prisma/client";
+import { cacheService } from "@common/cache/cache.service";
 
 declare module "fastify" {
   interface FastifyRequest {
@@ -15,20 +17,24 @@ export async function idempotencyMiddleware(
   reply: FastifyReply,
 ) {
   const idempotencyKey = request.headers["idempotency-key"] as string;
-  if (!idempotencyKey) return;
+  if (!idempotencyKey)
+    throw new AppError("Idempotency key not provided", StatusCodes.BAD_REQUEST);
 
-  const userId = (request.user as any)?.id;
-  if (!userId) return;
+  const userId = (request.user as User)?.id;
+  if (!userId) throw new AppError("User not found", StatusCodes.UNAUTHORIZED);
 
-  request.idempotencyKey = idempotencyKey;
+  const cachedKey = await cacheService.getIdempotencyKey(idempotencyKey);
+  if (cachedKey) {
+    request.idempotencyKey = cachedKey;
+    return;
+  }
 
-  console.log("[Middleware] Checking key:", idempotencyKey);
-  const existingKey = await (prisma as any).idempotencyKey.findUnique({
+  const existingKey = await prisma.idempotencyKey.findUnique({
     where: { key: idempotencyKey },
   });
-  console.log("[Middleware] Key exists?", !!existingKey);
 
   if (existingKey) {
+    await cacheService.setIdempotencyKey(existingKey.key);
     if (existingKey.userId !== userId) {
       throw new AppError(
         "Idempotency key belongs to another user",
@@ -37,16 +43,10 @@ export async function idempotencyMiddleware(
     }
 
     if (existingKey.statusCode) {
-      // CACHE HIT
-      logger.info({ idempotencyKey }, "Cache hit for idempotency key");
       const body = existingKey.responseBody
         ? JSON.parse(existingKey.responseBody)
         : undefined;
-
-      // Mark as cached so onSend hook knows
-      (request as any).idempotencyCached = true;
-
-      // Send response and return
+      request.idempotencyKey = existingKey.key;
       reply
         .code(existingKey.statusCode)
         .header("X-Idempotency-Key", idempotencyKey)
@@ -65,7 +65,7 @@ export async function idempotencyMiddleware(
 
   // MISS - Create Lock
   try {
-    await (prisma as any).idempotencyKey.create({
+    await prisma.idempotencyKey.create({
       data: {
         key: idempotencyKey,
         userId,
@@ -99,16 +99,14 @@ export async function saveIdempotencyResponse(
   if (!key) return payload;
 
   if (reply.statusCode >= 500) {
-    await (prisma as any).idempotencyKey
-      .deleteMany({ where: { key } })
-      .catch(() => {});
+    await prisma.idempotencyKey.deleteMany({ where: { key } }).catch(() => {});
     return payload;
   }
 
   // Only save if it's a JSON response (usually string if serialized, or object)
   // We try to catch errors to avoid crashing the response
   try {
-    await (prisma as any).idempotencyKey.updateMany({
+    await prisma.idempotencyKey.updateMany({
       where: {
         key,
         statusCode: null,
