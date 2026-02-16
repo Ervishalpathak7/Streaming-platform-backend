@@ -20,12 +20,12 @@ export const userSchema = z.object({
 });
 
 export const loginResponseSchema = z.object({
-  status: z.string(),
+  status: z.literal("success"),
   message: z.string(),
 });
 
 export const registerResponseSchema = z.object({
-  status: z.string(),
+  status: z.literal("success"),
   message: z.string(),
 });
 
@@ -34,7 +34,7 @@ export const refreshTokenSchema = z.object({
 });
 
 export const refreshTokenResponseSchema = z.object({
-  status: z.string(),
+  status: z.literal("success"),
   message: z.string(),
 });
 
@@ -44,7 +44,7 @@ export const logoutResponseSchema = z.object({
 });
 
 export const meResponseSchema = z.object({
-  status: z.string(),
+  status: z.literal("success"),
   message: z.string(),
   data: userSchema,
 });

@@ -56,9 +56,6 @@ export async function authRoutes(app: FastifyInstance) {
     "/refresh",
     {
       schema: {
-        headers: {
-          cookie: refreshTokenSchema,
-        },
         response: {
           200: refreshTokenResponseSchema,
         },
