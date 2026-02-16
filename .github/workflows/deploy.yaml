@@ -30,6 +30,7 @@ jobs:
 
             # Run database migrations (if not already handled in Dockerfile CMD)
             docker compose exec -T app npx prisma migrate deploy
+            
 
             # Cleanup unused images
             docker image prune -f
