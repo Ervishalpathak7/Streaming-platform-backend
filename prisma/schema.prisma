@@ -27,12 +27,12 @@ model Video {
   description String?
   userId      String
   user        User        @relation(fields: [userId], references: [id])
-  url         String?     @default("")
+  playbackUrl String?     
   status      VideoStatus @default(INITIATED)
-  uploadId    String?     // S3 multipart upload ID
-  filename    String?
-  filesize    Int?
-  filetype    String?
+  uploadId    String?      // S3 multipart upload ID
+  filename    String
+  filesize    Int
+  filetype    String
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 

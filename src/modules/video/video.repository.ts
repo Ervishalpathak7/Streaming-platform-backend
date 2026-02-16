@@ -31,10 +31,10 @@ export async function updateVideoUploadId(id: string, uploadId: string) {
   });
 }
 
-export async function updateVideoUrl(id: string, url: string) {
+export async function updateVideoPlaybackUrl(id: string, url: string) {
   return prisma.video.update({
     where: { id },
-    data: { url },
+    data: { playbackUrl: url },
   });
 }
 
@@ -54,7 +54,7 @@ export async function findVideosByUserId(
   cursor?: string,
 ) {
   // Verify cursor is valid
-   if (cursor && !isValidUUID(cursor)) {
+  if (cursor && !isValidUUID(cursor)) {
     throw new AppError("Invalid cursor format", StatusCodes.BAD_REQUEST);
   }
 

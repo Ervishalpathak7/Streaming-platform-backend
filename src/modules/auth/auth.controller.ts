@@ -73,6 +73,7 @@ export async function refreshHandler(
   reply: FastifyReply,
 ) {
   const refreshToken = request.cookies?.refreshToken;
+  console.log("Refresh token ", refreshToken);
   if (!refreshToken) {
     return reply.code(StatusCodes.UNAUTHORIZED).send({
       status: "error",

@@ -3,7 +3,6 @@ import {
   CreateMultipartUploadCommand,
   UploadPartCommand,
   CompleteMultipartUploadCommand,
-  AbortMultipartUploadCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { config } from "../../common/config/config";
@@ -13,7 +12,6 @@ import {
   findVideoById,
   findVideosByUserId,
   updateVideoUploadId,
-  updateVideoUrl,
 } from "./video.repository";
 import { CreateVideoInput, CompleteUploadInput } from "./video.schema";
 import { AppError } from "../../common/errors/error-handler";
@@ -102,7 +100,6 @@ export async function getSignedUrls(videoId: string, userId: string) {
 
   // 6. Update status to UPLOADING
   await updateVideoStatus(videoId, "UPLOADING");
-
   return {
     status: "success" as const,
     data: { signedUrls },
@@ -152,7 +149,6 @@ export async function completeMultipartUpload(
   try {
     await s3Client.send(command);
   } catch (error) {
-    // If completion fails, mark as FAILED
     await updateVideoStatus(videoId, "FAILED");
     throw new AppError(
       "Failed to complete multipart upload",
@@ -160,19 +156,9 @@ export async function completeMultipartUpload(
     );
   }
 
-  // Update status to PROCESSING (video processing server will handle transcoding)
   await updateVideoStatus(videoId, "PROCESSING");
-
-  // Set the S3 URL
-  const s3Url = config.AWS_ENDPOINT
-    ? `${config.AWS_ENDPOINT}/${config.AWS_BUCKET_NAME}/${key}`
-    : `https://${config.AWS_BUCKET_NAME}.s3.${config.AWS_REGION}.amazonaws.com/${key}`;
-
-  await updateVideoUrl(videoId, s3Url);
-
   // Invalidate list cache for this user
   await cacheService.deleteMatch(`videos:list:${userId}:*`);
-
   return {
     status: "success" as const,
     message: "Upload completed successfully. Video is being processed.",
@@ -195,7 +181,7 @@ export async function getVideoById(videoId: string, userId: string) {
     title: video.title,
     description: video.description,
     status: video.status,
-    playbackUrl: video.url,
+    playbackUrl: video.playbackUrl || null,
     thumbnailUrl: null, // TODO: Add thumbnail generation
     createdAt: video.createdAt,
   };
@@ -228,13 +214,13 @@ export async function listVideos(
     title: v.title,
     description: v.description,
     status: v.status,
-    playbackUrl: v.url,
+    playbackUrl: v.playbackUrl || null,
     thumbnailUrl: null,
     createdAt: v.createdAt,
   }));
 
   const result = { items, nextCursor };
-  await cacheService.set(cacheKey, result, 60); // Cache for 60 seconds
+  await cacheService.set(cacheKey, result, 600); // Cache for 10mins
   return result;
 }
 

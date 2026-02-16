@@ -32,7 +32,6 @@ export async function registerUser(input: RegisterInput) {
 
   // Store refresh token in database
   await storeRefreshToken(user.id, refreshToken, 7 * 24 * 60 * 60 * 1000); // 7 days
-
   return { user, accessToken, refreshToken };
 }
 
@@ -55,7 +54,7 @@ export async function loginUser(input: LoginInput) {
   const refreshToken = signRefreshToken({ id: user.id, version: Date.now() });
 
   // Store refresh token in database
-  await storeRefreshToken(user.id, refreshToken, 7 * 24 * 60 * 60 * 1000); // 7 days
+  await storeRefreshToken(user.id, refreshToken, 7 * 24 * 60 * 60 * 1000);
 
   return { user, accessToken, refreshToken };
 }
