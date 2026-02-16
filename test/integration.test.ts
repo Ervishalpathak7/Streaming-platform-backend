@@ -43,8 +43,9 @@ describe("Integration Tests", () => {
 
     expect(response.statusCode).toBe(201);
     const body = JSON.parse(response.payload);
-    expect(body).toHaveProperty("id");
-    expect(body.email).toBe(email);
+    expect(body.status).toBe("success");
+    expect(body.message).toBe("User registered successfully");
+    expect(response.headers.authorization).toBeDefined();
   });
 
   let accessToken = "";
@@ -67,11 +68,18 @@ describe("Integration Tests", () => {
       payload: { email, password },
     });
     expect(loginRes.statusCode).toBe(200);
-    const tokens = JSON.parse(loginRes.payload);
-    expect(tokens).toHaveProperty("accessToken");
-    expect(tokens).toHaveProperty("refreshToken");
-    accessToken = tokens.accessToken;
-    refreshToken = tokens.refreshToken;
+    const body = JSON.parse(loginRes.payload);
+    expect(body.status).toBe("success");
+    expect(body.message).toBe("Login successful");
+
+    // Extract tokens from headers
+    const authHeader = loginRes.headers.authorization as string;
+    expect(authHeader).toBeDefined();
+    accessToken = authHeader.replace("Bearer ", "");
+
+    const setCookieHeader = loginRes.headers["set-cookie"] as string;
+    expect(setCookieHeader).toBeDefined();
+    refreshToken = setCookieHeader.split(";")[0].split("=")[1];
 
     // 3. Get Me
     const meRes = await app.inject({
@@ -80,7 +88,8 @@ describe("Integration Tests", () => {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
     expect(meRes.statusCode).toBe(200);
-    expect(JSON.parse(meRes.payload)).toHaveProperty("email", email);
+    const user = JSON.parse(meRes.payload);
+    expect(user.email).toBe(email);
 
     // 4. Refresh Token
     const refreshRes = await app.inject({
@@ -95,6 +104,7 @@ describe("Integration Tests", () => {
     const logoutRes = await app.inject({
       method: "POST",
       url: "/api/v1/auth/logout",
+      headers: { Authorization: `Bearer ${accessToken}` },
     });
     expect(logoutRes.statusCode).toBe(200);
   });

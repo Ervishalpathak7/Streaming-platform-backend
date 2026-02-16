@@ -7,8 +7,13 @@ import {
   verifyPassword,
   signAccessToken,
   signRefreshToken,
-  verifyToken,
+  verifyRefreshToken,
 } from "./auth.utils";
+import {
+  storeRefreshToken,
+  findRefreshToken,
+  revokeRefreshToken,
+} from "./refresh-token.repository";
 
 export async function registerUser(input: RegisterInput) {
   const existingUser = await findUserByEmail(input.email);
@@ -23,7 +28,10 @@ export async function registerUser(input: RegisterInput) {
     email: user.email,
     role: user.role,
   });
-  const refreshToken = signRefreshToken({ id: user.id, version: 1 }); // Simple versioning
+  const refreshToken = signRefreshToken({ id: user.id, version: Date.now() });
+
+  // Store refresh token in database
+  await storeRefreshToken(user.id, refreshToken, 7 * 24 * 60 * 60 * 1000); // 7 days
 
   return { user, accessToken, refreshToken };
 }
@@ -44,16 +52,29 @@ export async function loginUser(input: LoginInput) {
     email: user.email,
     role: user.role,
   });
-  const refreshToken = signRefreshToken({ id: user.id, version: 1 }); // Simple versioning
+  const refreshToken = signRefreshToken({ id: user.id, version: Date.now() });
+
+  // Store refresh token in database
+  await storeRefreshToken(user.id, refreshToken, 7 * 24 * 60 * 60 * 1000); // 7 days
 
   return { user, accessToken, refreshToken };
 }
 
 export async function refreshAccessToken(refreshToken: string) {
   try {
-    const decoded = verifyToken(refreshToken) as any;
-    const user = await findUserById(decoded.id);
+    const decoded = verifyRefreshToken(refreshToken) as any;
 
+    // Check if token exists and is not revoked
+    const storedToken = await findRefreshToken(refreshToken);
+    if (!storedToken || storedToken.revoked) {
+      throw new AppError("Refresh token revoked", StatusCodes.UNAUTHORIZED);
+    }
+
+    if (storedToken.expiresAt < new Date()) {
+      throw new AppError("Refresh token expired", StatusCodes.UNAUTHORIZED);
+    }
+
+    const user = await findUserById(decoded.id);
     if (!user) {
       throw new AppError("User not found", StatusCodes.UNAUTHORIZED);
     }
@@ -68,4 +89,16 @@ export async function refreshAccessToken(refreshToken: string) {
   } catch (error) {
     throw new AppError("Invalid refresh token", StatusCodes.UNAUTHORIZED);
   }
+}
+
+export async function logoutUser(refreshToken: string) {
+  await revokeRefreshToken(refreshToken);
+}
+
+export async function me(userId: string) {
+  const user = await findUserById(userId);
+  if (!user) {
+    throw new AppError("User not found", StatusCodes.NOT_FOUND);
+  }
+  return user;
 }

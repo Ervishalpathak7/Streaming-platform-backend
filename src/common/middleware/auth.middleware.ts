@@ -1,9 +1,9 @@
 import { FastifyRequest, FastifyReply } from "fastify";
-import { verifyToken } from "../../modules/auth/auth.utils";
+import { verifyAccessToken } from "../../modules/auth/auth.utils";
 import { AppError } from "../errors/error-handler";
 import { StatusCodes } from "http-status-codes";
-import { prisma } from "@common/database/prisma";
-import { cacheService } from "@common/cache/cache.service";
+import { findUserById } from "@modules/auth/auth.repository";
+import { User } from "@prisma/client";
 
 export async function authenticate(
   request: FastifyRequest,
@@ -18,32 +18,39 @@ export async function authenticate(
   const token = authHeader.replace("Bearer ", "");
 
   try {
-    const decoded = verifyToken(token) as any;
-
-    const cachedUser = await cacheService.getUser(decoded.id);
-    if (cachedUser) {
-      request.user = cachedUser;
-      return;
+    const decoded = verifyAccessToken(token) as any;
+    if (!decoded) {
+      throw new AppError("Invalid or expired token", StatusCodes.UNAUTHORIZED);
     }
 
-    const user = await prisma.user.findUnique({ where: { id: decoded.id } });
-    if (!user) throw new AppError("User not found", StatusCodes.UNAUTHORIZED);
+    if (!request.userCache) request.userCache = new Map();
+    let user: User | null | undefined = request.userCache.get(decoded.id);
 
-    await cacheService.setUser(user);
+    if (!user) {
+      user = await findUserById(decoded.id);
+      if (!user) throw new AppError("User not found", StatusCodes.UNAUTHORIZED);
+      request.userCache.set(decoded.id, user);
+    }
 
-    request.user = user;
+    request.user = {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      name: user.name,
+    };
   } catch (error) {
     throw new AppError("Invalid or expired token", StatusCodes.UNAUTHORIZED);
   }
 }
 
-// Enhance FastifyRequest type
 declare module "fastify" {
   interface FastifyRequest {
     user?: {
       id: string;
       email: string;
       role: string;
+      name: string;
     };
+    userCache?: Map<string, User>;
   }
 }

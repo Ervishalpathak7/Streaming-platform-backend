@@ -8,13 +8,13 @@ export const loginSchema = z.object({
 export const registerSchema = z.object({
   email: z.string().email(),
   password: z.string().min(6),
-  name: z.string().optional(),
+  name: z.string(),
 });
 
 export const userSchema = z.object({
   id: z.string().uuid(),
   email: z.string().email(),
-  name: z.string().optional(),
+  name: z.string(),
   role: z.enum(["USER", "ADMIN"]),
   videos: z.array(z.string()).optional(),
 });
@@ -34,7 +34,19 @@ export const refreshTokenSchema = z.object({
 });
 
 export const refreshTokenResponseSchema = z.object({
-  accessToken: z.string(),
+  status: z.string(),
+  message: z.string(),
+});
+
+export const logoutResponseSchema = z.object({
+  status: z.string(),
+  message: z.string(),
+});
+
+export const meResponseSchema = z.object({
+  status: z.string(),
+  message: z.string(),
+  data: userSchema,
 });
 
 export type LoginInput = z.infer<typeof loginSchema>;

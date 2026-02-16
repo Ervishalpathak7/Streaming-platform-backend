@@ -2,12 +2,18 @@ import { FastifyInstance } from "fastify";
 import { ZodTypeProvider } from "fastify-type-provider-zod";
 import {
   initiateUploadHandler,
-  confirmUploadHandler,
+  getSignedUrlsHandler,
+  completeUploadHandler,
+  getVideoHandler,
   listVideosHandler,
 } from "./video.controller";
 import {
   createVideoSchema,
   initiateUploadResponseSchema,
+  getSignedUrlResponseSchema,
+  completeUploadRequestSchema,
+  completeUploadResponseSchema,
+  videoResponseSchema,
   listVideoSchema,
   listVideoResponseSchema,
 } from "./video.schema";
@@ -17,42 +23,83 @@ import {
   saveIdempotencyResponse,
 } from "../../common/middleware/idempotency.middleware";
 import { z } from "zod";
+import { videoRateLimit } from "@common/middleware/ratelimit.middleware";
 
 export async function videoRoutes(app: FastifyInstance) {
+  await videoRateLimit(app);
+  // POST /videos/init - Initialize upload
   app.withTypeProvider<ZodTypeProvider>().post(
-    "/",
+    "/init",
     {
-      preHandler: [authenticate],
+      preHandler: [authenticate, idempotencyMiddleware],
       schema: {
         body: createVideoSchema,
         response: {
-          201: initiateUploadResponseSchema,
+          200: initiateUploadResponseSchema,
         },
-        tags: ["Video"],
+        tags: ["Videos"],
         security: [{ bearerAuth: [] }],
       },
-      // onSend: [saveIdempotencyResponse],
+      onSend: [saveIdempotencyResponse],
     },
-    (req, res) => initiateUploadHandler(req as any, res),
+    initiateUploadHandler,
   );
 
-  app.withTypeProvider<ZodTypeProvider>().put(
-    "/:id/confirm",
+  // GET /videos/signedurl/:videoId - Get presigned URLs for multipart upload
+  app.withTypeProvider<ZodTypeProvider>().get(
+    "/signedurl/:videoId",
     {
       preHandler: [authenticate],
       schema: {
-        params: z.object({
-          id: z.string().uuid(),
-        }),
-        tags: ["Video"],
+        params: z.object({ videoId: z.string().uuid() }),
+        response: {
+          200: getSignedUrlResponseSchema,
+        },
+        tags: ["Videos"],
         security: [{ bearerAuth: [] }],
       },
     },
-    (req, res) => confirmUploadHandler(req as any, res),
+    getSignedUrlsHandler,
   );
 
+  // POST /videos/complete/:videoId - Complete multipart upload
+  app.withTypeProvider<ZodTypeProvider>().post(
+    "/complete/:videoId",
+    {
+      preHandler: [authenticate],
+      schema: {
+        params: z.object({ videoId: z.string().uuid() }),
+        body: completeUploadRequestSchema,
+        response: {
+          200: completeUploadResponseSchema,
+        },
+        tags: ["Videos"],
+        security: [{ bearerAuth: [] }],
+      },
+    },
+    completeUploadHandler,
+  );
+
+  // GET /videos/:videoId - Get video metadata
   app.withTypeProvider<ZodTypeProvider>().get(
-    "/",
+    "/:videoId",
+    {
+      preHandler: [authenticate],
+      schema: {
+        params: z.object({ videoId: z.string().uuid() }),
+        response: {
+          200: videoResponseSchema,
+        },
+        tags: ["Videos"],
+        security: [{ bearerAuth: [] }],
+      },
+    },
+    getVideoHandler,
+  );
+
+  // GET /videos/mine - List user's videos
+  app.withTypeProvider<ZodTypeProvider>().get(
+    "/mine",
     {
       preHandler: [authenticate],
       schema: {
@@ -60,10 +107,10 @@ export async function videoRoutes(app: FastifyInstance) {
         response: {
           200: listVideoResponseSchema,
         },
-        tags: ["Video"],
+        tags: ["Videos"],
         security: [{ bearerAuth: [] }],
       },
     },
-    (req, res) => listVideosHandler(req as any, res),
+    listVideosHandler,
   );
 }

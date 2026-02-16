@@ -12,13 +12,16 @@ import {
   loginSchema,
   loginResponseSchema,
   registerResponseSchema,
-  userSchema,
   refreshTokenSchema,
   refreshTokenResponseSchema,
+  meResponseSchema,
 } from "./auth.schema";
 import { authenticate } from "../../common/middleware/auth.middleware";
+import { authRateLimit } from "@common/middleware/ratelimit.middleware";
 
 export async function authRoutes(app: FastifyInstance) {
+  await authRateLimit(app);
+
   app.withTypeProvider<ZodTypeProvider>().post(
     "/register",
     {
@@ -53,7 +56,9 @@ export async function authRoutes(app: FastifyInstance) {
     "/refresh",
     {
       schema: {
-        body: refreshTokenSchema,
+        headers: {
+          cookie: refreshTokenSchema,
+        },
         response: {
           200: refreshTokenResponseSchema,
         },
@@ -69,7 +74,7 @@ export async function authRoutes(app: FastifyInstance) {
       preHandler: [authenticate],
       schema: {
         response: {
-          200: userSchema,
+          200: meResponseSchema,
         },
         tags: ["Auth"],
         security: [{ bearerAuth: [] }],

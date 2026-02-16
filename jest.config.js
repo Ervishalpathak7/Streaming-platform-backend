@@ -1,15 +1,32 @@
-/** @type {import('ts-jest').JestConfigWithTsJest} */
+// Load environment variables FIRST, before Jest config is processed
+require("dotenv").config({ path: ".env.test" });
+
 module.exports = {
   preset: "ts-jest",
-  testEnvironment: "node",
+  testEnvironment: "<rootDir>/test/jest-environment.js",
+  roots: ["<rootDir>/test"],
+  testMatch: ["**/*.test.ts"],
   moduleNameMapper: {
-    "^@modules/(.*)$": "<rootDir>/src/modules/$1",
     "^@common/(.*)$": "<rootDir>/src/common/$1",
+    "^@modules/(.*)$": "<rootDir>/src/modules/$1",
   },
-  testMatch: ["**/**/*.test.ts"],
-  verbose: true,
-  forceExit: true,
-  clearMocks: true,
-  resetMocks: true,
-  restoreMocks: true,
+  collectCoverageFrom: [
+    "src/**/*.ts",
+    "!src/**/*.d.ts",
+    "!src/server.ts",
+    "!src/**/*.schema.ts",
+  ],
+  coverageDirectory: "coverage",
+  coverageReporters: ["text", "lcov", "html"],
+  coverageThreshold: {
+    global: {
+      branches: 50,
+      functions: 50,
+      lines: 60,
+      statements: 60,
+    },
+  },
+  testTimeout: 30000,
+  globalSetup: "<rootDir>/test/globalSetup.ts",
+  setupFilesAfterEnv: ["<rootDir>/test/setup.ts"],
 };

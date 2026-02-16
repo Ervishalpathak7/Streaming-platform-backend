@@ -1,6 +1,11 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 import { LoginInput, RegisterInput } from "./auth.schema";
-import { registerUser, loginUser, refreshAccessToken } from "./auth.service";
+import {
+  registerUser,
+  loginUser,
+  refreshAccessToken,
+  logoutUser,
+} from "./auth.service";
 import { StatusCodes } from "http-status-codes";
 
 export async function registerHandler(
@@ -12,14 +17,12 @@ export async function registerHandler(
   reply.setCookie("refreshToken", refreshToken, {
     path: "/",
     httpOnly: true,
-    secure: true, // Always true since we use cookie-secure in prod/dev usually, but check config
-    sameSite: "none", // Needed for cross-origin
+    secure: true,
+    sameSite: "none",
     expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
   });
 
-  // Send Access Token in Header
   reply.header("Authorization", `Bearer ${accessToken}`);
-
   return reply.code(StatusCodes.CREATED).send({
     status: "success",
     message: "User registered successfully",
@@ -40,7 +43,6 @@ export async function loginHandler(
     expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
   });
 
-  // Send Access Token in Header
   reply.header("Authorization", `Bearer ${accessToken}`);
 
   return reply.code(StatusCodes.OK).send({
@@ -53,20 +55,43 @@ export async function logoutHandler(
   request: FastifyRequest,
   reply: FastifyReply,
 ) {
+  const refreshToken = request.cookies?.refreshToken;
+
+  if (refreshToken) {
+    await logoutUser(refreshToken);
+  }
+
   reply.clearCookie("refreshToken");
-  reply.code(StatusCodes.OK).send({ message: "Logged out successfully" });
+  reply.code(StatusCodes.OK).send({
+    status: "success",
+    message: "Logged out successfully",
+  });
 }
 
 export async function refreshHandler(
-  request: FastifyRequest<{ Body: { refreshToken: string } }>,
+  request: FastifyRequest,
   reply: FastifyReply,
 ) {
-  const { refreshToken } = request.body;
+  const refreshToken = request.cookies?.refreshToken;
+  if (!refreshToken) {
+    return reply.code(StatusCodes.UNAUTHORIZED).send({
+      status: "error",
+      message: "Refresh token not found",
+    });
+  }
   const result = await refreshAccessToken(refreshToken);
-  reply.code(StatusCodes.OK).send(result);
+  reply.header("Authorization", `Bearer ${result.accessToken}`);
+  reply.code(StatusCodes.OK).send({
+    status: "success",
+    message: "Access token refreshed successfully",
+  });
 }
 
 export async function meHandler(request: FastifyRequest, reply: FastifyReply) {
-  const user = (request as any).user;
-  reply.code(StatusCodes.OK).send(user);
+  const user = request.user;
+  reply.code(StatusCodes.OK).send({
+    status: "success",
+    message: "User fetched successfully",
+    data: user,
+  });
 }

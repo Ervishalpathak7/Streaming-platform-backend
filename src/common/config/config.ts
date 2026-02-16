@@ -1,5 +1,6 @@
 import { z } from "zod";
 import dotenv from "dotenv";
+import { logger } from "@common/logger/logger";
 
 dotenv.config();
 
@@ -14,9 +15,10 @@ const envSchema = z.object({
     .default("info"),
   FRONTEND_URL: z.string().url(),
   DATABASE_URL: z.string(),
-  JWT_SECRET: z.string().min(10),
-  JWT_EXPIRES_IN: z.string().default("15m"),
-  REFRESH_TOKEN_EXPIRES_IN: z.string().default("7d"),
+  JWT_ACCESS_SECRET: z.string().min(10),
+  JWT_ACCESS_EXPIRES_IN: z.string().default("15m"),
+  JWT_REFRESH_SECRET: z.string().min(10),
+  JWT_REFRESH_EXPIRES_IN: z.string().default("7d"),
   AWS_ACCESS_KEY_ID: z.string(),
   AWS_SECRET_ACCESS_KEY: z.string(),
   AWS_REGION: z.string().default("us-east-1"),
@@ -28,10 +30,7 @@ const envSchema = z.object({
 const parsedEnv = envSchema.safeParse(process.env);
 
 if (!parsedEnv.success) {
-  console.error(
-    "❌ Invalid environment variables:",
-    JSON.stringify(parsedEnv.error.format(), null, 2),
-  );
+  logger.error("Invalid environment variables:", parsedEnv.error.issues);
   process.exit(1);
 }
 

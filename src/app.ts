@@ -16,6 +16,8 @@ import { globalErrorHandler } from "./common/errors/error-handler";
 import { connectDB, disconnectDB } from "./common/database/prisma";
 import { authRoutes } from "./modules/auth/auth.routes";
 import { videoRoutes } from "./modules/video/video.routes";
+import { userRoutes } from "./modules/user/user.routes";
+import { runCleanupJob } from "./jobs/cleanup.job";
 
 export async function buildApp(): Promise<FastifyInstance> {
   const app = Fastify({
@@ -87,6 +89,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   // Register Routes
   await app.register(authRoutes, { prefix: "/api/v1/auth" });
   await app.register(videoRoutes, { prefix: "/api/v1/videos" });
+  await app.register(userRoutes, { prefix: "/api/v1/user" });
 
   // Health Check
   app.get("/health", async () => {
@@ -97,17 +100,21 @@ export async function buildApp(): Promise<FastifyInstance> {
 }
 
 export async function startServer() {
-  await connectDB();
   const app = await buildApp();
+  await connectDB();
+
+  // Start cleanup job (runs immediately, then every hour)
+  runCleanupJob();
+  setInterval(runCleanupJob, 60 * 60 * 1000); // Every hour
 
   try {
     await app.listen({ port: config.PORT, host: config.HOST });
-    logger.info(`🚀 Server running at http://${config.HOST}:${config.PORT}`);
+    logger.info(`Server running at http://${config.HOST}:${config.PORT}`);
     logger.info(
-      `📚 Documentation at http://${config.HOST}:${config.PORT}/documentation`,
+      `Documentation at http://${config.HOST}:${config.PORT}/documentation`,
     );
   } catch (err) {
-    logger.error(err, "❌ Failed to start server");
+    logger.error(err, "Failed to start server");
     process.exit(1);
   }
 

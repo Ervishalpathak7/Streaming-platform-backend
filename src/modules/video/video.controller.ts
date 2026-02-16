@@ -1,35 +1,67 @@
 import { FastifyRequest, FastifyReply } from "fastify";
-import { CreateVideoInput, ListVideoInput } from "./video.schema";
-import { initiateUpload, confirmUpload, listVideos } from "./video.service";
+import {
+  CreateVideoInput,
+  ListVideoInput,
+  CompleteUploadInput,
+} from "./video.schema";
+import {
+  initiateUpload,
+  getSignedUrls,
+  completeMultipartUpload,
+  getVideoById,
+  listVideos,
+} from "./video.service";
 import { StatusCodes } from "http-status-codes";
 
 export async function initiateUploadHandler(
-  request: FastifyRequest<{ Body: CreateVideoInput }>,
+  request: FastifyRequest,
   reply: FastifyReply,
 ) {
-  // TODO: Get userId from request.user (Auth Middleware)
-  // For now assuming it's attached by middleware
-  const userId = (request.user as any).id;
-
-  const result = await initiateUpload(userId, request.body);
-  reply.code(StatusCodes.CREATED).send(result);
+  const userId = request.user!.id;
+  const result = await initiateUpload(userId, request.body as CreateVideoInput);
+  reply.code(StatusCodes.OK).send(result);
 }
 
-export async function confirmUploadHandler(
-  request: FastifyRequest<{ Params: { id: string } }>,
+export async function getSignedUrlsHandler(
+  request: FastifyRequest,
   reply: FastifyReply,
 ) {
-  const userId = (request.user as any).id;
-  const result = await confirmUpload(request.params.id, userId);
+  const userId = request.user!.id;
+  const { videoId } = request.params as { videoId: string };
+  const result = await getSignedUrls(videoId, userId);
+  reply.code(StatusCodes.OK).send(result);
+}
+
+export async function completeUploadHandler(
+  request: FastifyRequest,
+  reply: FastifyReply,
+) {
+  const userId = request.user!.id;
+  const { videoId } = request.params as { videoId: string };
+  const result = await completeMultipartUpload(
+    videoId,
+    userId,
+    request.body as CompleteUploadInput,
+  );
+  reply.code(StatusCodes.OK).send(result);
+}
+
+export async function getVideoHandler(
+  request: FastifyRequest,
+  reply: FastifyReply,
+) {
+  const userId = request.user!.id;
+  const { videoId } = request.params as { videoId: string };
+  const result = await getVideoById(videoId, userId);
   reply.code(StatusCodes.OK).send(result);
 }
 
 export async function listVideosHandler(
-  request: FastifyRequest<{ Querystring: ListVideoInput }>,
+  request: FastifyRequest,
   reply: FastifyReply,
 ) {
-  const userId = (request.user as any).id;
-  const { limit, cursor } = request.query;
+  const userId = request.user!.id;
+  const { limit, cursor } = request.query as ListVideoInput;
   const result = await listVideos(userId, limit, cursor);
   reply.code(StatusCodes.OK).send(result);
 }

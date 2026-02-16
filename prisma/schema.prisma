@@ -8,28 +8,38 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  password  String
-  name      String?
-  role      Role     @default(USER)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  videos    Video[]
+  id            String         @id @default(uuid())
+  email         String         @unique
+  password      String
+  name          String
+  role          Role           @default(USER)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  videos        Video[]
+  refreshTokens RefreshToken[]
+
+  @@index([createdAt])
 }
 
 model Video {
-  id          String   @id @default(uuid())
+  id          String      @id @default(uuid())
   title       String
   description String?
   userId      String
-  user        User     @relation(fields: [userId], references: [id])
-  url         String?  @default("")
+  user        User        @relation(fields: [userId], references: [id])
+  url         String?     @default("")
   status      VideoStatus @default(INITIATED)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  uploadId    String?     // S3 multipart upload ID
+  filename    String?
+  filesize    Int?
+  filetype    String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
 
   @@index([userId])
+  @@index([status])
+  @@index([userId, status])
+  @@index([userId, createdAt])
 }
 
 enum Role {
@@ -39,9 +49,25 @@ enum Role {
 
 enum VideoStatus {
   INITIATED
-  UPLOADED
-  PUBLISHED
+  UPLOADING
+  PROCESSING
+  READY
   FAILED
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  revoked   Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@index([expiresAt])
 }
 
 model IdempotencyKey {
@@ -50,7 +76,10 @@ model IdempotencyKey {
   path         String
   method       String
   statusCode   Int?
-  responseBody String? // Serialized JSON
+  responseBody String?
   createdAt    DateTime @default(now())
   lockedAt     DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
 }

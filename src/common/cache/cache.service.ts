@@ -20,13 +20,13 @@ class CacheService {
     });
   }
 
-  async setUser(value: User, ttlSeconds: number = 300): Promise<void> {
+  async setUser(value: User): Promise<void> {
     try {
       await this.redis.set(
         `user:${value.id}`,
         JSON.stringify(value),
         "EX",
-        ttlSeconds,
+        3600,
       );
     } catch (err) {
       logger.error({ err, key: `user:${value.id}` }, "Cache Set Error");
@@ -85,7 +85,10 @@ class CacheService {
   }
 
   // Cache Idempotency Key data
-  async setIdempotencyKey(value: string, ttlSeconds: number = 300): Promise<void> {
+  async setIdempotencyKey(
+    value: string,
+    ttlSeconds: number = 300,
+  ): Promise<void> {
     try {
       await this.redis.set(
         `idempotencyKey:${value}`,
@@ -113,6 +116,25 @@ class CacheService {
       await this.redis.del(`idempotencyKey:${id}`);
     } catch (err) {
       logger.error({ err, key: `idempotencyKey:${id}` }, "Cache Delete Error");
+    }
+  }
+
+  // Generic get/set methods
+  async get<T>(key: string): Promise<T | null> {
+    try {
+      const data = await this.redis.get(key);
+      return data ? JSON.parse(data) : null;
+    } catch (err) {
+      logger.error({ err, key }, "Cache Get Error");
+      return null;
+    }
+  }
+
+  async set<T>(key: string, value: T, ttlSeconds: number): Promise<void> {
+    try {
+      await this.redis.set(key, JSON.stringify(value), "EX", ttlSeconds);
+    } catch (err) {
+      logger.error({ err, key }, "Cache Set Error");
     }
   }
 

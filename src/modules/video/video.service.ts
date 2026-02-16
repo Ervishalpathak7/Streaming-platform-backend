@@ -1,4 +1,10 @@
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import {
+  S3Client,
+  CreateMultipartUploadCommand,
+  UploadPartCommand,
+  CompleteMultipartUploadCommand,
+  AbortMultipartUploadCommand,
+} from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { config } from "../../common/config/config";
 import {
@@ -6,8 +12,10 @@ import {
   updateVideoStatus,
   findVideoById,
   findVideosByUserId,
+  updateVideoUploadId,
+  updateVideoUrl,
 } from "./video.repository";
-import { CreateVideoInput } from "./video.schema";
+import { CreateVideoInput, CompleteUploadInput } from "./video.schema";
 import { AppError } from "../../common/errors/error-handler";
 import { StatusCodes } from "http-status-codes";
 import { cacheService } from "../../common/cache/cache.service";
@@ -22,24 +30,23 @@ const s3Client = new S3Client({
   forcePathStyle: true, // Needed for MinIO/Local
 });
 
-export async function initiateUpload(userId: string, input: CreateVideoInput) {
-  // 1. Create DB Record
-  const video = await createVideo({ ...input, userId });
+// Calculate number of parts (5MB per part minimum for S3)
+const PART_SIZE = 5 * 1024 * 1024; // 5MB
 
-  // 2. Generate Presigned URL
-  const key = `videos/${video.id}/${input.title.replace(/\s+/g, "_")}`;
-  const command = new PutObjectCommand({
-    Bucket: config.AWS_BUCKET_NAME,
-    Key: key,
-    ContentType: input.fileType,
+export async function initiateUpload(userId: string, input: CreateVideoInput) {
+  // 1. Create DB Record with INITIATED status
+  const video = await createVideo({
+    ...input,
+    userId,
   });
 
-  const uploadUrl = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
-
-  return { videoId: video.id, uploadUrl };
+  return {
+    status: "success" as const,
+    videoId: video.id,
+  };
 }
 
-export async function confirmUpload(videoId: string, userId: string) {
+export async function getSignedUrls(videoId: string, userId: string) {
   const video = await findVideoById(videoId);
 
   if (!video) {
@@ -50,14 +57,148 @@ export async function confirmUpload(videoId: string, userId: string) {
     throw new AppError("Unauthorized", StatusCodes.FORBIDDEN);
   }
 
-  // In a real app, we would verify S3 object existence here via HeadObject
+  if (video.status !== "INITIATED") {
+    throw new AppError(
+      "Invalid video state. Must be INITIATED",
+      StatusCodes.CONFLICT,
+    );
+  }
 
-  const updated = await updateVideoStatus(videoId, "UPLOADED");
+  // 2. Initiate S3 multipart upload
+  const key = `videos/${video.id}/${video.filename}`;
+  const command = new CreateMultipartUploadCommand({
+    Bucket: config.AWS_BUCKET_NAME,
+    Key: key,
+    ContentType: video.filetype || "video/mp4",
+  });
+
+  const multipartUpload = await s3Client.send(command);
+  const uploadId = multipartUpload.UploadId!;
+
+  // 3. Save uploadId to database
+  await updateVideoUploadId(videoId, uploadId);
+
+  // 4. Calculate number of parts
+  const numParts = Math.ceil((video.filesize || 0) / PART_SIZE);
+
+  // 5. Generate presigned URLs for each part
+  const signedUrls = await Promise.all(
+    Array.from({ length: numParts }, async (_, i) => {
+      const partNumber = i + 1;
+      const uploadPartCommand = new UploadPartCommand({
+        Bucket: config.AWS_BUCKET_NAME,
+        Key: key,
+        UploadId: uploadId,
+        PartNumber: partNumber,
+      });
+
+      const url = await getSignedUrl(s3Client, uploadPartCommand, {
+        expiresIn: 3600, // 1 hour
+      });
+
+      return { partNumber, url };
+    }),
+  );
+
+  // 6. Update status to UPLOADING
+  await updateVideoStatus(videoId, "UPLOADING");
+
+  return {
+    status: "success" as const,
+    data: { signedUrls },
+  };
+}
+
+export async function completeMultipartUpload(
+  videoId: string,
+  userId: string,
+  input: CompleteUploadInput,
+) {
+  const video = await findVideoById(videoId);
+
+  if (!video) {
+    throw new AppError("Video not found", StatusCodes.NOT_FOUND);
+  }
+
+  if (video.userId !== userId) {
+    throw new AppError("Unauthorized", StatusCodes.FORBIDDEN);
+  }
+
+  if (video.status !== "UPLOADING") {
+    throw new AppError(
+      "Invalid video state. Must be UPLOADING",
+      StatusCodes.CONFLICT,
+    );
+  }
+
+  if (!video.uploadId) {
+    throw new AppError("Upload ID not found", StatusCodes.BAD_REQUEST);
+  }
+
+  // Complete S3 multipart upload
+  const key = `videos/${video.id}/${video.filename}`;
+  const command = new CompleteMultipartUploadCommand({
+    Bucket: config.AWS_BUCKET_NAME,
+    Key: key,
+    UploadId: video.uploadId,
+    MultipartUpload: {
+      Parts: input.parts.map((p) => ({
+        PartNumber: p.partNumber,
+        ETag: p.eTag,
+      })),
+    },
+  });
+
+  try {
+    await s3Client.send(command);
+  } catch (error) {
+    // If completion fails, mark as FAILED
+    await updateVideoStatus(videoId, "FAILED");
+    throw new AppError(
+      "Failed to complete multipart upload",
+      StatusCodes.INTERNAL_SERVER_ERROR,
+    );
+  }
+
+  // Update status to PROCESSING (video processing server will handle transcoding)
+  await updateVideoStatus(videoId, "PROCESSING");
+
+  // Set the S3 URL
+  const s3Url = config.AWS_ENDPOINT
+    ? `${config.AWS_ENDPOINT}/${config.AWS_BUCKET_NAME}/${key}`
+    : `https://${config.AWS_BUCKET_NAME}.s3.${config.AWS_REGION}.amazonaws.com/${key}`;
+
+  await updateVideoUrl(videoId, s3Url);
 
   // Invalidate list cache for this user
   await cacheService.deleteMatch(`videos:list:${userId}:*`);
 
-  return updated;
+  return {
+    status: "success" as const,
+    message: "Upload completed successfully. Video is being processed.",
+  };
+}
+
+export async function getVideoById(videoId: string, userId: string) {
+  const video = await findVideoById(videoId);
+
+  if (!video) {
+    throw new AppError("Video not found", StatusCodes.NOT_FOUND);
+  }
+
+  if (video.userId !== userId) {
+    throw new AppError("Unauthorized", StatusCodes.FORBIDDEN);
+  }
+
+  return {
+    id: video.id,
+    title: video.title,
+    description: video.description,
+    status: video.status,
+    playbackUrl: video.url,
+    thumbnailUrl: null, // TODO: Add thumbnail generation
+    createdAt: video.createdAt,
+  };
 }
 
 export async function listVideos(
@@ -78,11 +219,27 @@ export async function listVideos(
   let nextCursor: string | null = null;
 
   if (videos.length > limit) {
-    const nextItem = videos.pop(); // Remove the extra item
+    const nextItem = videos.pop();
     nextCursor = nextItem!.id;
   }
 
-  const result = { items: videos, nextCursor };
+  const items = videos.map((v) => ({
+    id: v.id,
+    title: v.title,
+    description: v.description,
+    status: v.status,
+    playbackUrl: v.url,
+    thumbnailUrl: null,
+    createdAt: v.createdAt,
+  }));
+
+  const result = { items, nextCursor };
   await cacheService.set(cacheKey, result, 60); // Cache for 60 seconds
   return result;
+}
+
+export function isValidUUID(uuid: string) {
+  const uuidRegex =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(uuid);
 }

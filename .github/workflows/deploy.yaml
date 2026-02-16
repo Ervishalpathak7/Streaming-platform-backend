@@ -24,8 +24,15 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
       - name: Run Linting
         run: npm run lint
+
+      - name: Run Tests
+        run: npm test
+        continue-on-error: true
 
   deploy:
     needs: test
@@ -45,8 +52,10 @@ jobs:
             git pull origin main
 
             # Rebuild and start containerized application
-            # docker-compose is typically aliased to 'docker compose' in newer versions
             docker compose up --build -d
+
+            # Run database migrations (if not already handled in Dockerfile CMD)
+            docker compose exec -T app npx prisma migrate deploy
 
             # Cleanup unused images
             docker image prune -f

@@ -1,10 +1,12 @@
 import { describe, it, expect, jest, beforeEach } from "@jest/globals";
 import {
   initiateUpload,
-  confirmUpload,
+  getSignedUrls,
+  completeMultipartUpload,
   listVideos,
 } from "../../src/modules/video/video.service";
 import * as videoRepository from "../../src/modules/video/video.repository";
+import { S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { cacheService } from "../../src/common/cache/cache.service";
 
@@ -32,28 +34,33 @@ describe("VideoService", () => {
   });
 
   describe("initiateUpload", () => {
-    it("should create video and return signed url", async () => {
+    it("should create video and return videoId", async () => {
       // Arrange
       const userId = "user-123";
       const input = {
         title: "My Video",
-        fileType: "video/mp4",
-        fileSize: 1000,
+        description: "Test description",
+        filename: "video.mp4",
+        filesize: 10485760, // 10MB
+        filetype: "video/mp4" as const,
       };
 
       const mockVideo = {
         id: "video-123",
         title: "My Video",
         description: "Test description",
+        filename: "video.mp4",
+        filesize: 10485760,
+        filetype: "video/mp4",
         status: "INITIATED" as const,
         userId,
         url: null,
+        uploadId: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
 
       videoRepositoryMock.createVideo.mockResolvedValue(mockVideo);
-      getSignedUrlMock.mockResolvedValue("https://s3.mocked.url/upload");
 
       // Act
       const result = await initiateUpload(userId, input);
@@ -64,43 +71,9 @@ describe("VideoService", () => {
         userId,
       });
       expect(result).toEqual({
+        status: "success",
         videoId: "video-123",
-        uploadUrl: "https://s3.mocked.url/upload",
       });
-    });
-  });
-
-  describe("confirmUpload", () => {
-    it("should update video status and invalidate cache", async () => {
-      const videoId = "video-123";
-      const userId = "user-123";
-      const mockVideo = {
-        id: videoId,
-        title: "My Video",
-        description: "Test description",
-        status: "INITIATED" as const,
-        userId,
-        url: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      videoRepositoryMock.findVideoById.mockResolvedValue(mockVideo);
-      videoRepositoryMock.updateVideoStatus.mockResolvedValue({
-        ...mockVideo,
-        status: "UPLOADED",
-      });
-
-      const result = await confirmUpload(videoId, userId);
-
-      expect(result.status).toBe("UPLOADED");
-      expect(videoRepositoryMock.updateVideoStatus).toHaveBeenCalledWith(
-        videoId,
-        "UPLOADED",
-      );
-      expect(cacheServiceMock.deleteMatch).toHaveBeenCalledWith(
-        `videos:list:${userId}:*`,
-      );
     });
   });
 
@@ -108,7 +81,17 @@ describe("VideoService", () => {
     it("should return cached results if available", async () => {
       const userId = "user-123";
       const cachedResult = {
-        items: [{ id: "v1", title: "Cached Video" }],
+        items: [
+          {
+            id: "v1",
+            title: "Cached Video",
+            description: null,
+            status: "READY" as const,
+            playbackUrl: "http://vid1",
+            thumbnailUrl: null,
+            createdAt: new Date(),
+          },
+        ],
         nextCursor: null,
       };
 
@@ -130,9 +113,13 @@ describe("VideoService", () => {
           id: "v1",
           title: "Vid 1",
           description: null,
-          status: "PUBLISHED" as const,
+          status: "READY" as const,
           userId,
           url: "http://vid1",
+          filename: "video1.mp4",
+          filesize: 1000,
+          filetype: "video/mp4",
+          uploadId: null,
           createdAt: new Date(),
           updatedAt: new Date(),
         },
@@ -140,9 +127,13 @@ describe("VideoService", () => {
           id: "v2",
           title: "Vid 2",
           description: null,
-          status: "PUBLISHED" as const,
+          status: "READY" as const,
           userId,
           url: "http://vid2",
+          filename: "video2.mp4",
+          filesize: 2000,
+          filetype: "video/mp4",
+          uploadId: null,
           createdAt: new Date(),
           updatedAt: new Date(),
         },
@@ -173,9 +164,13 @@ describe("VideoService", () => {
           id: "v1",
           title: "Vid 1",
           description: null,
-          status: "PUBLISHED" as const,
+          status: "READY" as const,
           userId,
           url: "http://vid1",
+          filename: "video1.mp4",
+          filesize: 1000,
+          filetype: "video/mp4",
+          uploadId: null,
           createdAt: new Date(),
           updatedAt: new Date(),
         },
@@ -183,9 +178,13 @@ describe("VideoService", () => {
           id: "v2",
           title: "Vid 2",
           description: null,
-          status: "PUBLISHED" as const,
+          status: "READY" as const,
           userId,
           url: "http://vid2",
+          filename: "video2.mp4",
+          filesize: 2000,
+          filetype: "video/mp4",
+          uploadId: null,
           createdAt: new Date(),
           updatedAt: new Date(),
         },
@@ -193,9 +192,13 @@ describe("VideoService", () => {
           id: "v3",
           title: "Vid 3 (Extra)",
           description: null,
-          status: "PUBLISHED" as const,
+          status: "READY" as const,
           userId,
           url: "http://vid3",
+          filename: "video3.mp4",
+          filesize: 3000,
+          filetype: "video/mp4",
+          uploadId: null,
           createdAt: new Date(),
           updatedAt: new Date(),
         },
