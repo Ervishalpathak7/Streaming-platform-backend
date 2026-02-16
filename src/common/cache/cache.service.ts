@@ -20,6 +20,17 @@ class CacheService {
     });
   }
 
+  // check status
+  async checkRedisStatus(): Promise<boolean> {
+    try {
+      await this.redis.ping();
+      return true;
+    } catch (err) {
+      logger.error({ err }, "Redis Client Error");
+      return false;
+    }
+  }
+
   async setUser(value: User): Promise<void> {
     try {
       await this.redis.set(

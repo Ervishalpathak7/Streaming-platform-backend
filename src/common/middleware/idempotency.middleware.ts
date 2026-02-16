@@ -16,7 +16,7 @@ export async function idempotencyMiddleware(
   request: FastifyRequest,
   reply: FastifyReply,
 ) {
-  const idempotencyKey = request.headers["idempotency-key"] as string;
+  const idempotencyKey = request.headers["Idempotency-key"] as string;
   if (!idempotencyKey)
     throw new AppError("Idempotency key not provided", StatusCodes.BAD_REQUEST);
 

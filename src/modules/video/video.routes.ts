@@ -27,7 +27,6 @@ import { videoRateLimit } from "@common/middleware/ratelimit.middleware";
 
 export async function videoRoutes(app: FastifyInstance) {
   await videoRateLimit(app);
-  // POST /videos/init - Initialize upload
   app.withTypeProvider<ZodTypeProvider>().post(
     "/init",
     {

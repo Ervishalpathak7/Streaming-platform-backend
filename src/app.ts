@@ -13,11 +13,12 @@ import {
 import { config } from "./common/config/config";
 import { logger } from "./common/logger/logger";
 import { globalErrorHandler } from "./common/errors/error-handler";
-import { connectDB, disconnectDB } from "./common/database/prisma";
+import { connectDB, disconnectDB, prisma } from "./common/database/prisma";
 import { authRoutes } from "./modules/auth/auth.routes";
 import { videoRoutes } from "./modules/video/video.routes";
 import { userRoutes } from "./modules/user/user.routes";
 import { runCleanupJob } from "./jobs/cleanup.job";
+import { cacheService } from "@common/cache/cache.service";
 
 export async function buildApp(): Promise<FastifyInstance> {
   const app = Fastify({
@@ -43,7 +44,7 @@ export async function buildApp(): Promise<FastifyInstance> {
     ],
     credentials: true, // Required for cookies (RefreshToken)
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With" , "Idempotency-key"],
     exposedHeaders: ["Authorization"],
   });
 
@@ -93,6 +94,17 @@ export async function buildApp(): Promise<FastifyInstance> {
 
   // Health Check
   app.get("/health", async () => {
+    // Check redis status
+    const redisStatus = await cacheService.checkRedisStatus();
+    if (!redisStatus) {
+      throw new Error("Redis is not running");
+    }
+    // Check database status
+    const dbStatus = await prisma.$queryRaw`SELECT 1`;
+    if (!dbStatus) {
+      throw new Error("Database is not running");
+    }
+
     return { status: "ok", timestamp: new Date().toISOString() };
   });
 
