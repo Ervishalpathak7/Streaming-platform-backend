@@ -8,27 +8,4 @@ services:
       - .env
     environment:
       - NODE_ENV=production
-      - REDIS_URL=redis://redis:6379
 
-    depends_on:
-      - redis
-    networks:
-      - streaming-network
-
-  redis:
-    image: redis:7-alpine
-    container_name: streaming-cache
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    command: redis-server --appendonly yes
-    networks:
-      - streaming-network
-
-networks:
-  streaming-network:
-    driver: bridge
-
-volumes:
-  redis_data:
